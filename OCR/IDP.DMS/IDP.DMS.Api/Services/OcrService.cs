@@ -1,10 +1,21 @@
-using System.Net.Http.Headers;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.IO.Compression;
 using System.Xml.Linq;
 using IDP.DMS.Api.Models;
+using Docnet.Core;
+using Docnet.Core.Models;
+using SharpImage = SixLabors.ImageSharp.Image;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Formats.Png;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
+
 
 namespace IDP.DMS.Api.Services;
 
@@ -13,7 +24,6 @@ public class OcrService : IDisposable
     private readonly ILogger<OcrService> _logger;
     private readonly IConfiguration _config;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly string _contentRootPath;
 
     public OcrService(
         IWebHostEnvironment env,
@@ -24,15 +34,21 @@ public class OcrService : IDisposable
         _logger = logger;
         _config = config;
         _httpClientFactory = httpClientFactory;
-        _contentRootPath = env.ContentRootPath;
+
+        // QuestPDF community license (free for open-source / internal use)
+        QuestPDF.Settings.License = LicenseType.Community;
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // ExtractText  (Gemini API only — local engines removed)
+    // ─────────────────────────────────────────────────────────────────────────
+
     /// <summary>
-    /// Extract text from an image or PDF file using the specified OCR engine.
+    /// Extract text from a document using Gemini Vision API or direct text-layer reading.
     /// </summary>
-    /// <param name="imagePath">Path to the image or PDF file</param>
-    /// <param name="engine">OCR engine: "easyocr", "crnn", "vietocr", "gemini"</param>
-    public string ExtractText(string imagePath, string engine = "easyocr")
+    /// <param name="imagePath">Path to the image, PDF or DOCX file.</param>
+    /// <param name="engine">OCR engine — only "gemini" is supported; any other value also routes to Gemini.</param>
+    public string ExtractText(string imagePath, string engine = "gemini")
     {
         if (!File.Exists(imagePath))
         {
@@ -42,7 +58,7 @@ public class OcrService : IDisposable
 
         try
         {
-            // DOCX là gói OpenXML; đọc trực tiếp nội dung thay vì gửi tệp nén vào engine ảnh.
+            // DOCX: read the OpenXML text layer directly without spawning any process.
             if (imagePath.EndsWith(".docx", StringComparison.OrdinalIgnoreCase))
             {
                 using var archive = ZipFile.OpenRead(imagePath);
@@ -53,143 +69,81 @@ public class OcrService : IDisposable
                 XNamespace word = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
                 return string.Join(Environment.NewLine,
                     document.Descendants(word + "p")
-                        .Select(paragraph => string.Concat(paragraph.Descendants(word + "t").Select(node => node.Value)))
-                        .Where(text => !string.IsNullOrWhiteSpace(text)));
+                        .Select(p => string.Concat(p.Descendants(word + "t").Select(t => t.Value)))
+                        .Where(t => !string.IsNullOrWhiteSpace(t)));
             }
 
-            // PDF số: đọc text layer trực tiếp. PDF scan sẽ đi tiếp xuống Python để render từng trang.
+            // Digital PDF: read the embedded text layer first (fast, no API call).
             if (imagePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
             {
                 using var pdf = UglyToad.PdfPig.PdfDocument.Open(imagePath);
-                var sb = new System.Text.StringBuilder();
+                var sb = new StringBuilder();
                 foreach (var page in pdf.GetPages())
                     sb.AppendLine(page.Text);
                 var pdfText = sb.ToString().Trim();
                 if (!string.IsNullOrWhiteSpace(pdfText)) return pdfText;
+                // Scanned PDF: fall through to Gemini below.
             }
 
-            // Gemini Vision API — gọi thẳng từ C#, không qua Python (nếu có ApiKey)
-            if (engine.Equals("gemini", StringComparison.OrdinalIgnoreCase))
-            {
-                if (imagePath.EndsWith(".tif", StringComparison.OrdinalIgnoreCase) ||
-                    imagePath.EndsWith(".tiff", StringComparison.OrdinalIgnoreCase))
-                {
-                    _logger.LogInformation("Gemini does not accept TIFF directly. Falling back to EasyOCR.");
-                    engine = "easyocr";
-                }
-                var apiKey = _config["Gemini:ApiKey"];
-                if (engine.Equals("gemini", StringComparison.OrdinalIgnoreCase) &&
-                    !string.IsNullOrWhiteSpace(apiKey) && apiKey != "YOUR_GEMINI_API_KEY_HERE")
-                {
-                    return ExtractTextWithGemini(imagePath).GetAwaiter().GetResult();
-                }
-                if (engine.Equals("gemini", StringComparison.OrdinalIgnoreCase))
-                {
-                    _logger.LogWarning("Gemini API key is not configured. Falling back to vietocr.");
-                    engine = "vietocr";
-                }
-            }
-
-            // Các engine Python; script tự render PDF scan và TIFF nhiều trang.
-            var validEngines = new[] { "easyocr", "crnn", "vietocr", "tesseract" };
-            if (!validEngines.Contains(engine.ToLowerInvariant()))
-            {
-                _logger.LogWarning("Invalid OCR engine '{Engine}', falling back to easyocr", engine);
-                engine = "easyocr";
-            }
-
-            _logger.LogInformation("Running OCR with engine '{Engine}' on file: {Path}", engine, imagePath);
-            var timeoutMs = engine == "easyocr" ? 120000 : 300000;
-            return RunPython(["--engine", engine, imagePath], timeoutMs, $"OCR engine '{engine}'").Trim();
+            // All image formats + scanned PDFs → Gemini Vision API.
+            return ExtractTextWithGemini(imagePath).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing image for OCR (engine={Engine}): {Path}", engine, imagePath);
+            _logger.LogError(ex, "Error during OCR on file: {Path}", imagePath);
             throw;
         }
     }
 
-    public OcrExtractionResult ExtractTextDetailed(string filePath, string engine = "easyocr", bool forceGemini = false)
+    // ─────────────────────────────────────────────────────────────────────────
+    // ExtractTextDetailed
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public OcrExtractionResult ExtractTextDetailed(string filePath, string engine = "gemini", bool forceGemini = false)
     {
         if (!File.Exists(filePath))
             throw new FileNotFoundException("Không tìm thấy file cần OCR.", filePath);
 
-        if (forceGemini)
-        {
-            var configuredGeminiKey = _config["Gemini:ApiKey"];
-            var supportedExtensions = new[] { ".png", ".jpg", ".jpeg", ".webp", ".pdf" };
-            var extension = Path.GetExtension(filePath);
-            if (string.IsNullOrWhiteSpace(configuredGeminiKey) || configuredGeminiKey == "YOUR_GEMINI_API_KEY_HERE")
-                throw new InvalidOperationException("Chưa cấu hình Gemini API Key. Vui lòng liên hệ quản trị viên để cấu hình Gemini.");
-            if (!supportedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Gemini chỉ hỗ trợ PDF, PNG, JPG/JPEG hoặc WEBP trong chức năng bóc tách này.");
-
-            var text = ExtractTextWithGemini(filePath).GetAwaiter().GetResult();
-            if (string.IsNullOrWhiteSpace(text))
-                throw new InvalidOperationException("Gemini không nhận diện được nội dung chữ trong tài liệu.");
-            return new OcrExtractionResult(text, "gemini", false, "Bóc tách thành công bằng Gemini.");
-        }
-
+        // Digital PDF text-layer.
         if (filePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
         {
             using var pdf = UglyToad.PdfPig.PdfDocument.Open(filePath);
-            var textLayer = string.Join(Environment.NewLine, pdf.GetPages().Select(page => page.Text)).Trim();
+            var textLayer = string.Join(Environment.NewLine, pdf.GetPages().Select(p => p.Text)).Trim();
             if (!string.IsNullOrWhiteSpace(textLayer))
             {
                 _logger.LogInformation("Extracted PDF text layer directly with PdfPig: {Path}", filePath);
                 return new OcrExtractionResult(textLayer, "pdfpig", false, "Đọc trực tiếp text layer PDF bằng PdfPig.");
             }
-            _logger.LogInformation("PDF has no text layer; activating scanned-PDF OCR chain: {Path}", filePath);
+            _logger.LogInformation("PDF has no text layer; routing to Gemini Vision API: {Path}", filePath);
         }
 
+        // DOCX.
         if (filePath.EndsWith(".docx", StringComparison.OrdinalIgnoreCase))
         {
-            var docxText = ExtractText(filePath, "easyocr");
+            var docxText = ExtractText(filePath);
             if (string.IsNullOrWhiteSpace(docxText))
                 throw new InvalidOperationException("Không đọc được nội dung chữ từ file DOCX.");
             return new OcrExtractionResult(docxText, "docx-text", false, "Đọc trực tiếp nội dung OpenXML của DOCX.");
         }
 
-        var requestedEngine = string.IsNullOrWhiteSpace(engine) ? "easyocr" : engine.Trim().ToLowerInvariant();
-        var geminiKey = _config["Gemini:ApiKey"];
-        var geminiConfigured = !string.IsNullOrWhiteSpace(geminiKey) && geminiKey != "YOUR_GEMINI_API_KEY_HERE";
-        var geminiCompatibleFile = new[] { ".png", ".jpg", ".jpeg", ".webp", ".pdf" }
-            .Contains(Path.GetExtension(filePath), StringComparer.OrdinalIgnoreCase);
-        var candidates = new List<string>();
+        // Validate Gemini key + supported file types.
+        var configuredGeminiKey = _config["Gemini:ApiKey"];
+        if (string.IsNullOrWhiteSpace(configuredGeminiKey) || configuredGeminiKey == "YOUR_GEMINI_API_KEY_HERE")
+            throw new InvalidOperationException("Chưa cấu hình Gemini API Key. Vui lòng liên hệ quản trị viên.");
 
-        if (requestedEngine == "gemini" && geminiConfigured && geminiCompatibleFile)
-            candidates.Add("gemini");
-        else if (requestedEngine == "gemini")
-            _logger.LogWarning("Gemini API key is missing. Activating local OCR fallback chain.");
-        else if (new[] { "vietocr", "easyocr", "tesseract", "crnn" }.Contains(requestedEngine))
-            candidates.Add(requestedEngine);
+        var supportedExtensions = new[] { ".png", ".jpg", ".jpeg", ".webp", ".pdf" };
+        if (!supportedExtensions.Contains(Path.GetExtension(filePath), StringComparer.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Gemini chỉ hỗ trợ PDF, PNG, JPG/JPEG hoặc WEBP.");
 
-        candidates.AddRange(new[] { "vietocr", "easyocr", "tesseract" });
-        var distinctCandidates = candidates.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        var failures = new List<string>();
-
-        foreach (var candidate in distinctCandidates)
-        {
-            try
-            {
-                var text = ExtractText(filePath, candidate);
-                if (string.IsNullOrWhiteSpace(text))
-                    throw new InvalidOperationException("Engine không nhận diện được nội dung chữ.");
-                var usedFallback = !candidate.Equals(requestedEngine, StringComparison.OrdinalIgnoreCase);
-                var note = usedFallback
-                    ? $"Engine '{requestedEngine}' không khả dụng; đã tự động fallback sang '{candidate}'."
-                    : $"OCR thành công bằng engine '{candidate}'.";
-                return new OcrExtractionResult(text, candidate, usedFallback, note);
-            }
-            catch (Exception ex)
-            {
-                failures.Add($"{candidate}: {ex.Message}");
-                _logger.LogWarning(ex, "OCR candidate {Engine} failed; trying the next engine.", candidate);
-            }
-        }
-
-        throw new InvalidOperationException($"Tất cả OCR engine đều thất bại. {string.Join(" | ", failures)}");
+        var text = ExtractTextWithGemini(filePath).GetAwaiter().GetResult();
+        if (string.IsNullOrWhiteSpace(text))
+            throw new InvalidOperationException("Gemini không nhận diện được nội dung chữ trong tài liệu.");
+        return new OcrExtractionResult(text, "gemini", false, "Bóc tách thành công bằng Gemini Vision API.");
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // RenderPagePreview  (PDF/TIFF → PNG using Docnet + ImageSharp — no Python)
+    // ─────────────────────────────────────────────────────────────────────────
 
     public OcrPagePreviewResult RenderPagePreview(string filePath, int page)
     {
@@ -198,30 +152,54 @@ public class OcrService : IDisposable
         if (page < 1)
             throw new BusinessRuleException("Số trang xem trước phải lớn hơn hoặc bằng 1.");
 
-        var previewPath = Path.Combine(Path.GetTempPath(), $"idpdms_preview_{Guid.NewGuid():N}.png");
-        try
+        var ext = Path.GetExtension(filePath).ToLowerInvariant();
+
+        // PDF → render via Docnet (PDFium wrapper)
+        if (ext == ".pdf")
         {
-            var output = RunPython([
-                "--render-page",
-                "--page", page.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                "--output", previewPath,
-                filePath
-            ], 120000, "Render trang xem trước OCR");
-            var metadata = JsonSerializer.Deserialize<PythonOcrPagePreview>(output,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-                ?? throw new InvalidOperationException("Python không trả về metadata trang xem trước.");
-            if (!File.Exists(previewPath))
-                throw new InvalidOperationException("Python không tạo được ảnh xem trước OCR.");
-            return new OcrPagePreviewResult(
-                File.ReadAllBytes(previewPath), metadata.Page, metadata.PageCount, metadata.Width, metadata.Height);
+            using var library = DocLib.Instance;
+            using var reader  = library.GetDocReader(filePath, new PageDimensions(2000, 2800));
+            var pageCount = reader.GetPageCount();
+            if (page > pageCount)
+                throw new BusinessRuleException($"Trang {page} không tồn tại; tài liệu có {pageCount} trang.");
+
+            using var pageReader = reader.GetPageReader(page - 1);
+            var rawBytes = pageReader.GetImage(); // BGRA byte array
+            int width    = pageReader.GetPageWidth();
+            int height   = pageReader.GetPageHeight();
+
+            // Convert BGRA → PNG using ImageSharp
+            using var image = SharpImage.LoadPixelData<Bgra32>(rawBytes, width, height);
+            using var ms    = new MemoryStream();
+            image.Save(ms, PngFormat.Instance);
+            return new OcrPagePreviewResult(ms.ToArray(), page, pageCount, width, height);
         }
-        finally
+
+        // TIFF multi-frame → render via ImageSharp
+        if (ext is ".tif" or ".tiff")
         {
-            try { File.Delete(previewPath); }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
+            using var image = SharpImage.Load(filePath);
+            var frameCount = image.Frames.Count;
+            if (page > frameCount)
+                throw new BusinessRuleException($"Trang {page} không tồn tại; tài liệu có {frameCount} trang.");
+            using var frame = image.Frames.CloneFrame(page - 1);
+            using var ms    = new MemoryStream();
+            frame.Save(ms, PngFormat.Instance);
+            return new OcrPagePreviewResult(ms.ToArray(), page, frameCount, frame.Width, frame.Height);
+        }
+
+        // Single image
+        {
+            using var image = SharpImage.Load(filePath);
+            using var ms    = new MemoryStream();
+            image.Save(ms, PngFormat.Instance);
+            return new OcrPagePreviewResult(ms.ToArray(), 1, 1, image.Width, image.Height);
         }
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ExtractZones  (zone cropping in C# via ImageSharp, text via Gemini API)
+    // ─────────────────────────────────────────────────────────────────────────
 
     public OcrZonesResultDto ExtractZones(
         long documentId,
@@ -231,92 +209,134 @@ public class OcrService : IDisposable
     {
         if (!File.Exists(filePath))
             throw new FileNotFoundException("Không tìm thấy file nguồn để OCR theo vùng.", filePath);
-
-        var requestedEngine = string.IsNullOrWhiteSpace(request.Engine)
-            ? "vietocr"
-            : request.Engine.Trim().ToLowerInvariant();
-        if (requestedEngine is not ("gemini" or "vietocr" or "tesseract" or "easyocr" or "crnn"))
-            throw new BusinessRuleException("Engine OCR vùng chỉ hỗ trợ Gemini, VietOCR, Tesseract, EasyOCR hoặc CRNN.");
         if (request.Zones.Count is < 1 or > 12)
             throw new BusinessRuleException("Mỗi lần OCR phải có từ 1 đến 12 vùng.");
 
         var allowedFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "documentNumber", "issueDate", "issuingAuthority", "subject", "signer"
-        };
-        if (request.Zones.Any(zone => !allowedFields.Contains(zone.FieldKey)))
+            { "documentNumber", "issueDate", "issuingAuthority", "subject", "signer" };
+        if (request.Zones.Any(z => !allowedFields.Contains(z.FieldKey)))
             throw new BusinessRuleException("Nhãn vùng OCR không thuộc danh sách trường metadata được hỗ trợ.");
-        if (request.Zones.Select(zone => zone.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count() != request.Zones.Count)
+        if (request.Zones.Select(z => z.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count() != request.Zones.Count)
             throw new BusinessRuleException("Mã định danh của các vùng OCR không được trùng nhau.");
-        if (request.Zones.Any(zone => zone.X + zone.Width > 100 || zone.Y + zone.Height > 100))
+        if (request.Zones.Any(z => z.X + z.Width > 100 || z.Y + z.Height > 100))
             throw new BusinessRuleException("Tọa độ vùng OCR phải nằm hoàn toàn trong trang tài liệu.");
 
-        var workingFolder = Path.Combine(Path.GetTempPath(), $"idpdms_zones_{Guid.NewGuid():N}");
-        var cropsFolder = Path.Combine(workingFolder, "crops");
-        var requestPath = Path.Combine(workingFolder, "zones.json");
-        var outputPath = Path.Combine(workingFolder, "result.json");
-        Directory.CreateDirectory(cropsFolder);
+        // Render each required page to an in-memory image
+        var requiredPages = request.Zones.Select(z => z.Page).Distinct().OrderBy(p => p).ToList();
+        var pageImages    = new Dictionary<int, SharpImage>();
         try
         {
-            File.WriteAllText(requestPath, JsonSerializer.Serialize(new { zones = request.Zones },
-                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }), new UTF8Encoding(false));
-            RunPython([
-                "--ocr-zones",
-                "--engine", requestedEngine,
-                "--zones-file", requestPath,
-                "--zones-output", outputPath,
-                "--crops-dir", cropsFolder,
-                filePath
-            ], 300000, $"OCR {request.Zones.Count} vùng bằng '{requestedEngine}'");
+            foreach (var pageNumber in requiredPages)
+                pageImages[pageNumber] = LoadPageImage(filePath, pageNumber);
 
-            if (!File.Exists(outputPath))
-                throw new InvalidOperationException("Python không trả về kết quả OCR theo vùng.");
-            var pythonOutput = JsonSerializer.Deserialize<PythonOcrZonesOutput>(
-                File.ReadAllText(outputPath, Encoding.UTF8),
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-                ?? throw new InvalidOperationException("Kết quả OCR theo vùng không hợp lệ.");
-
-            var results = new List<OcrZoneResultDto>(pythonOutput.Zones.Count);
-            foreach (var zone in pythonOutput.Zones)
+            var results = new List<OcrZoneResultDto>(request.Zones.Count);
+            for (var index = 0; index < request.Zones.Count; index++)
             {
-                var text = zone.Text?.Trim() ?? string.Empty;
-                var actualEngine = zone.Engine ?? pythonOutput.Engine;
-                if (requestedEngine == "gemini")
+                var zone  = request.Zones[index];
+                var image = pageImages[zone.Page];
+
+                // Convert percentage coordinates to pixels (zone coords are decimal)
+                int left   = Math.Max(0, (int)Math.Floor(image.Width  * (double)zone.X / 100.0));
+                int top    = Math.Max(0, (int)Math.Floor(image.Height * (double)zone.Y / 100.0));
+                int right  = Math.Min(image.Width,  (int)Math.Ceiling(image.Width  * (double)(zone.X + zone.Width)  / 100.0));
+                int bottom = Math.Min(image.Height, (int)Math.Ceiling(image.Height * (double)(zone.Y + zone.Height) / 100.0));
+
+                if (right - left < 2 || bottom - top < 2)
+                    throw new BusinessRuleException($"Vùng '{zone.Label}' quá nhỏ để OCR.");
+
+                var cropRect   = new Rectangle(left, top, right - left, bottom - top);
+                using var crop = image.Clone(ctx => ctx.Crop(cropRect));
+
+                // Upscale very small crops for better recognition quality
+                var scaleFactor = Math.Max(1.0, Math.Min(3.0, Math.Max(700.0 / crop.Width, 100.0 / crop.Height)));
+                SharpImage finalCrop;
+                if (scaleFactor > 1.05)
                 {
-                    var cropName = Path.GetFileName(zone.CropFileName);
-                    if (string.IsNullOrWhiteSpace(cropName))
-                        throw new InvalidOperationException($"Python không trả về ảnh crop của vùng '{zone.Label}'.");
-                    var cropPath = Path.Combine(cropsFolder, cropName);
-                    if (!File.Exists(cropPath))
-                        throw new InvalidOperationException($"Không tìm thấy ảnh crop của vùng '{zone.Label}'.");
-                    var extraction = ExtractTextDetailed(cropPath, "gemini");
-                    text = extraction.Text.Trim();
-                    actualEngine = extraction.Engine;
+                    finalCrop = crop.Clone(ctx => ctx.Resize(
+                        (int)(crop.Width * scaleFactor),
+                        (int)(crop.Height * scaleFactor),
+                        KnownResamplers.Lanczos3));
+                }
+                else
+                {
+                    finalCrop = crop.Clone(ctx => { });
+                }
+
+                string text;
+                try
+                {
+                    // Save crop to a temp file and call Gemini Vision API
+                    var cropTempPath = Path.Combine(Path.GetTempPath(), $"idpdms_zone_{Guid.NewGuid():N}.png");
+                    try
+                    {
+                        finalCrop.Save(cropTempPath);
+                        var extraction = ExtractTextDetailed(cropTempPath, "gemini");
+                        text = extraction.Text.Trim();
+                    }
+                    finally
+                    {
+                        finalCrop.Dispose();
+                        try { File.Delete(cropTempPath); } catch (IOException) { }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Gemini OCR zone '{Label}' failed; using empty string.", zone.Label);
+                    text = string.Empty;
                 }
 
                 results.Add(new OcrZoneResultDto(
                     zone.Id, zone.FieldKey, zone.Label, zone.Page,
                     zone.X, zone.Y, zone.Width, zone.Height,
-                    zone.PixelX, zone.PixelY, zone.PixelWidth, zone.PixelHeight,
-                    text, actualEngine));
+                    left, top, right - left, bottom - top,
+                    text, "gemini"));
             }
 
             var metadata = results
-                .GroupBy(zone => zone.FieldKey, StringComparer.OrdinalIgnoreCase)
+                .GroupBy(z => z.FieldKey, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(
-                    group => group.Key,
-                    group => string.Join(Environment.NewLine, group.Select(zone => zone.Text).Where(text => !string.IsNullOrWhiteSpace(text))),
+                    g => g.Key,
+                    g => string.Join(Environment.NewLine, g.Select(z => z.Text).Where(t => !string.IsNullOrWhiteSpace(t))),
                     StringComparer.OrdinalIgnoreCase);
-            return new OcrZonesResultDto(
-                documentId, documentCode, requestedEngine, metadata, results, DateTime.UtcNow);
+
+            return new OcrZonesResultDto(documentId, documentCode, "gemini", metadata, results, DateTime.UtcNow);
         }
         finally
         {
-            try { Directory.Delete(workingFolder, recursive: true); }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
+            foreach (var img in pageImages.Values)
+                img.Dispose();
         }
     }
+
+    /// <summary>Loads a single page from a PDF, TIFF or image file as an ImageSharp Image.</summary>
+    private SharpImage LoadPageImage(string filePath, int page)
+    {
+        var ext = Path.GetExtension(filePath).ToLowerInvariant();
+
+        if (ext == ".pdf")
+        {
+            using var library = DocLib.Instance;
+            using var reader  = library.GetDocReader(filePath, new PageDimensions(2000, 2800));
+            using var pageReader = reader.GetPageReader(page - 1);
+            var raw    = pageReader.GetImage();
+            int width  = pageReader.GetPageWidth();
+            int height = pageReader.GetPageHeight();
+            return SharpImage.LoadPixelData<Bgra32>(raw, width, height);
+        }
+
+        if (ext is ".tif" or ".tiff")
+        {
+            using var src = SharpImage.Load(filePath);
+            return src.Frames.CloneFrame(page - 1);
+        }
+
+        return SharpImage.Load(filePath);
+    }
+
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // GenerateDigitizedPdf  (QuestPDF — no Python / reportlab)
+    // ─────────────────────────────────────────────────────────────────────────
 
     public void GenerateDigitizedPdf(OcrPdfGenerationRequest request)
     {
@@ -328,103 +348,89 @@ public class OcrService : IDisposable
         Directory.CreateDirectory(Path.GetDirectoryName(request.OutputPath)
             ?? throw new InvalidOperationException("Không xác định được thư mục PDF đầu ra."));
 
-        var temporaryTextPath = Path.Combine(Path.GetTempPath(), $"idpdms_ocr_{Guid.NewGuid():N}.txt");
-        try
+        var normalizedText = (request.Text ?? string.Empty)
+            .Replace("\r\n", "\n").Replace("\r", "\n").Trim();
+        if (string.IsNullOrWhiteSpace(normalizedText))
+            normalizedText = "Không có nội dung OCR.";
+
+        Document.Create(container =>
         {
-            File.WriteAllText(temporaryTextPath, request.Text, new UTF8Encoding(false));
-            var arguments = new List<string>
+            container.Page(page =>
             {
-                "--generate-pdf",
-                "--output", request.OutputPath,
-                "--text-file", temporaryTextPath,
-                "--code", request.Code ?? string.Empty,
-                "--title", request.Title ?? string.Empty,
-                "--source", request.SourceFileName ?? string.Empty,
-                "--ocr-engine", request.Engine ?? string.Empty,
-                "--created-at", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")
-            };
+                page.Size(PageSizes.A4);
+                page.Margin(18, Unit.Millimetre);
+                page.DefaultTextStyle(x => x.FontSize(10.5f).FontFamily("Arial"));
 
-            var normalFont = _config["Ocr:PdfFont"];
-            var boldFont = _config["Ocr:PdfBoldFont"];
-            if (!string.IsNullOrWhiteSpace(normalFont)) arguments.AddRange(["--font", normalFont]);
-            if (!string.IsNullOrWhiteSpace(boldFont)) arguments.AddRange(["--bold-font", boldFont]);
+                page.Header().Column(col =>
+                {
+                    col.Item().Text("HỆ THỐNG QUẢN LÝ VÀ SỐ HÓA HỒ SƠ IDP.DMS")
+                        .Bold().FontSize(15).FontColor("#0f3d73").AlignCenter();
+                    col.Item().Text("PHIÊN BẢN PDF SỐ HÓA OCR")
+                        .FontSize(11).FontColor("#0f3d73").AlignCenter();
+                    col.Item().PaddingTop(6).Table(table =>
+                    {
+                        table.ColumnsDefinition(cols =>
+                        {
+                            cols.ConstantColumn(42, Unit.Millimetre);
+                            cols.RelativeColumn();
+                        });
+                        void Row(string label, string? value)
+                        {
+                            table.Cell().Background("#eaf2fb").Padding(5).Text(label).Bold().FontSize(9.5f);
+                            table.Cell().Padding(5).Text(value ?? "—").FontSize(9.5f);
+                        }
+                        Row("Mã tài liệu",   request.Code);
+                        Row("Tên tài liệu",  request.Title);
+                        Row("Tệp nguồn",     request.SourceFileName);
+                        Row("Công cụ OCR",   request.Engine);
+                        Row("Thời gian số hóa", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss"));
+                    });
+                    col.Item().PaddingTop(8).Text("TOÀN VĂN OCR BÓC TÁCH")
+                        .Bold().FontSize(11).FontColor("#0f3d73");
+                });
 
-            RunPython(arguments, 120000, "Sinh PDF số hóa Unicode");
-            if (!File.Exists(request.OutputPath) || new FileInfo(request.OutputPath).Length == 0)
-                throw new InvalidOperationException("Python không tạo được file PDF số hóa.");
-        }
-        finally
-        {
-            try { File.Delete(temporaryTextPath); }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
-        }
+                page.Content().PaddingTop(8).Column(col =>
+                {
+                    foreach (var block in normalizedText.Split("\n\n", StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        col.Item().Text(block.Replace("\n", " ")).FontSize(10.5f).Justify();
+                        col.Item().Height(4);
+                    }
+                });
+
+                page.Footer().AlignCenter()
+                    .Text(text =>
+                    {
+                        text.Span("IDP.DMS • Tài liệu số hóa • Trang ");
+                        text.CurrentPageNumber();
+                        text.Span("/");
+                        text.TotalPages();
+                    });
+            });
+        }).GeneratePdf(request.OutputPath);
+
+        if (!File.Exists(request.OutputPath) || new FileInfo(request.OutputPath).Length == 0)
+            throw new InvalidOperationException("QuestPDF không tạo được file PDF số hóa.");
+
+        _logger.LogInformation("Digitized PDF generated: {Path}", request.OutputPath);
     }
 
-    private string RunPython(IReadOnlyList<string> arguments, int timeoutMs, string operation)
-    {
-        var pythonScript = Path.Combine(_contentRootPath, "ocr_engine.py");
-        if (!File.Exists(pythonScript))
-            throw new FileNotFoundException("Không tìm thấy Python OCR engine.", pythonScript);
+    // ─────────────────────────────────────────────────────────────────────────
+    // ExtractTextWithGemini  (Gemini Vision API — unchanged)
+    // ─────────────────────────────────────────────────────────────────────────
 
-        var configuredPython = _config["Ocr:PythonExecutable"];
-        var defaultPython = @"C:\Users\Hi\AppData\Local\Programs\Python\Python311\python.exe";
-        var pythonExecutable = !string.IsNullOrWhiteSpace(configuredPython)
-            ? configuredPython
-            : File.Exists(defaultPython) ? defaultPython : "python";
-
-        var start = new System.Diagnostics.ProcessStartInfo
-        {
-            FileName = pythonExecutable,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8,
-            CreateNoWindow = true,
-            WorkingDirectory = _contentRootPath
-        };
-        start.ArgumentList.Add(pythonScript);
-        foreach (var argument in arguments) start.ArgumentList.Add(argument);
-
-        using var process = System.Diagnostics.Process.Start(start)
-            ?? throw new InvalidOperationException("Không thể khởi động Python OCR engine.");
-        var outputTask = process.StandardOutput.ReadToEndAsync();
-        var errorTask = process.StandardError.ReadToEndAsync();
-
-        if (!process.WaitForExit(timeoutMs))
-        {
-            process.Kill(true);
-            throw new TimeoutException($"{operation} vượt quá thời gian xử lý cho phép.");
-        }
-
-        Task.WaitAll(outputTask, errorTask);
-        var output = outputTask.Result;
-        var error = errorTask.Result;
-        if (process.ExitCode != 0)
-        {
-            _logger.LogError("Python operation failed ({Operation}): {Error}", operation, error);
-            throw new InvalidOperationException($"{operation} thất bại: {error.Trim()}");
-        }
-
-        return output;
-    }
-
-    /// <summary>
-    /// Gọi Gemini Vision API để bóc tách chữ viết tay tiếng Việt từ ảnh.
-    /// </summary>
+    /// <summary>Calls Gemini Vision API to extract Vietnamese text from an image or scanned PDF.</summary>
     private async Task<string> ExtractTextWithGemini(string imagePath)
     {
         var apiKey = _config["Gemini:ApiKey"];
-        var model = _config["Gemini:Model"] ?? "gemini-flash-latest";
+        var model  = _config["Gemini:Model"] ?? "gemini-flash-latest";
 
         if (string.IsNullOrWhiteSpace(apiKey) || apiKey == "YOUR_GEMINI_API_KEY_HERE")
             throw new Exception("Chưa cấu hình Gemini API Key. Vui lòng cập nhật 'Gemini:ApiKey' trong appsettings.json.");
 
-        // Đọc ảnh và encode base64
         var imageBytes  = await File.ReadAllBytesAsync(imagePath);
         var base64Image = Convert.ToBase64String(imageBytes);
-        var ext = Path.GetExtension(imagePath).TrimStart('.').ToLowerInvariant();
+        var ext         = Path.GetExtension(imagePath).TrimStart('.').ToLowerInvariant();
         var mimeType    = ext switch
         {
             "jpg" or "jpeg" => "image/jpeg",
@@ -446,7 +452,6 @@ Yêu cầu bắt buộc:
 6. Không bịa nội dung. Nếu ký tự/từ không chắc chắn, dùng [KHÔNG ĐỌC RÕ] thay vì đoán.
 7. Chỉ trả về văn bản thuần UTF-8; không Markdown, không code fence, không lời mở đầu, không nhận xét.";
 
-        // Tạo request body theo Gemini API format
         var requestBody = new
         {
             contents = new[]
@@ -456,59 +461,45 @@ Yêu cầu bắt buộc:
                     parts = new object[]
                     {
                         new { text = prompt },
-                        new
-                        {
-                            inlineData = new
-                            {
-                                mimeType = mimeType,
-                                data      = base64Image
-                            }
-                        }
+                        new { inlineData = new { mimeType, data = base64Image } }
                     }
                 }
             },
-            generationConfig = new
-            {
-                temperature     = 0.1,  // Thấp để kết quả ổn định, ít sáng tạo
-                maxOutputTokens = 8192
-            }
+            generationConfig = new { temperature = 0.1, maxOutputTokens = 8192 }
         };
 
-        var json = JsonSerializer.Serialize(requestBody);
-
+        var json   = JsonSerializer.Serialize(requestBody);
         var url    = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
         var client = _httpClientFactory.CreateClient("Gemini");
         client.Timeout = TimeSpan.FromSeconds(60);
 
         _logger.LogInformation("Calling Gemini Vision API with model {Model}", model);
 
-        HttpResponseMessage? response = null;
-        string responseBody = string.Empty;
-        Exception? lastException = null;
-        const int maxAttempts = 3;
+        HttpResponseMessage? response  = null;
+        string responseBody            = string.Empty;
+        Exception? lastException       = null;
+        const int maxAttempts          = 3;
+
         for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
             try
             {
                 using var content = new StringContent(json, Encoding.UTF8, "application/json");
-                response = await client.PostAsync(url, content);
+                response     = await client.PostAsync(url, content);
                 responseBody = await response.Content.ReadAsStringAsync();
                 if (response.IsSuccessStatusCode) break;
 
                 var transient = response.StatusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests
                     || (int)response.StatusCode >= 500;
                 lastException = new HttpRequestException(
-                    $"Gemini API lỗi {(int)response.StatusCode}: {responseBody}",
-                    null,
-                    response.StatusCode);
+                    $"Gemini API lỗi {(int)response.StatusCode}: {responseBody}", null, response.StatusCode);
                 if (!transient)
                     throw new InvalidOperationException($"Gemini API từ chối yêu cầu ({(int)response.StatusCode}): {responseBody}");
                 if (attempt == maxAttempts) throw lastException;
 
-                var delay = response.Headers.RetryAfter?.Delta
-                    ?? TimeSpan.FromSeconds(Math.Pow(2, attempt - 1));
+                var delay = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(Math.Pow(2, attempt - 1));
                 _logger.LogWarning(
-                    "Gemini transient error {StatusCode}; retry {NextAttempt}/{MaxAttempts} after {DelayMs} ms.",
+                    "Gemini transient error {StatusCode}; retry {Next}/{Max} after {Delay} ms.",
                     response.StatusCode, attempt + 1, maxAttempts, delay.TotalMilliseconds);
                 response.Dispose();
                 response = null;
@@ -518,8 +509,7 @@ Yêu cầu bắt buộc:
             {
                 lastException = ex;
                 var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt - 1));
-                _logger.LogWarning(ex,
-                    "Gemini network error; retry {NextAttempt}/{MaxAttempts} after {DelayMs} ms.",
+                _logger.LogWarning(ex, "Gemini network error; retry {Next}/{Max} after {Delay} ms.",
                     attempt + 1, maxAttempts, delay.TotalMilliseconds);
                 await Task.Delay(delay);
             }
@@ -530,23 +520,26 @@ Yêu cầu bắt buộc:
 
         using (response)
         {
-            _logger.LogInformation("Gemini OCR completed successfully after retry policy.");
+            _logger.LogInformation("Gemini OCR completed successfully.");
         }
 
-        // Parse kết quả từ Gemini response
         using var doc  = JsonDocument.Parse(responseBody);
-        var candidates = doc.RootElement.GetProperty("candidates");
-        var text       = candidates[0]
-                            .GetProperty("content")
-                            .GetProperty("parts")[0]
-                            .GetProperty("text")
-                            .GetString() ?? string.Empty;
+        var text = doc.RootElement
+            .GetProperty("candidates")[0]
+            .GetProperty("content")
+            .GetProperty("parts")[0]
+            .GetProperty("text")
+            .GetString() ?? string.Empty;
 
         return text.Trim();
     }
 
     public void Dispose() { }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Supporting records
+// ─────────────────────────────────────────────────────────────────────────────
 
 public sealed record OcrExtractionResult(
     string Text,
@@ -561,4 +554,3 @@ public sealed record OcrPdfGenerationRequest(
     string? Title,
     string? SourceFileName,
     string? Engine);
-

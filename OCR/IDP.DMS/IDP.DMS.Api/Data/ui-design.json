@@ -1,0 +1,3832 @@
+{
+  "features": [
+    {
+      "id": "1",
+      "name": "Quản lý menu",
+      "section": "I. Website quản trị - hệ thống",
+      "actor": "Quản trị hệ thống (QTHT)",
+      "subActor": "",
+      "description": "Thêm một menu mới. Khi người dùng bấm vào một menu sẽ mở ra một trang.",
+      "actions": [
+        {
+          "name": "Quản lý menu",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Thêm một menu mới. Khi người dùng bấm vào một menu sẽ mở ra một trang.",
+          "kind": [
+            "create"
+          ]
+        },
+        {
+          "name": "Sửa/Xóa menu",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Sửa menu hiện tại theo thông tin chỉnh sửa Xóa menu không sử dụng",
+          "kind": [
+            "edit",
+            "delete",
+            "export"
+          ]
+        },
+        {
+          "name": "Thêm/Sửa/Xóa chú thích",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Thêm chú thích cho menu được chọn Sửa chú thích cho menu được chọn Xóa chú thích cho menu được chọn",
+          "kind": [
+            "create",
+            "edit",
+            "delete"
+          ]
+        },
+        {
+          "name": "Hiển thị chú thích",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Hiển thị danh sách chú thích theo menu được chọn",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "2",
+      "name": "Quản lý nhóm quyền",
+      "section": "I. Website quản trị - hệ thống",
+      "actor": "Quản trị hệ thống (QTHT)",
+      "subActor": "",
+      "description": "Quản lý việc tạo và cấp các loại quyền khác nhau",
+      "actions": [
+        {
+          "name": "Quản lý nhóm quyền",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Quản lý việc tạo và cấp các loại quyền khác nhau",
+          "kind": [
+            "create"
+          ]
+        },
+        {
+          "name": "Tìm kiếm nhóm quyền",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Tìm kiếm các nhóm quyền theo tên",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Thêm/Sửa/Xóa nhóm quyền",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Thêm một nhóm quyền mới để cấp cho người dùng cấp thấp hơn Sửa nhóm quyền hiện tại Xóa nhóm quyền hiện tại",
+          "kind": [
+            "create",
+            "edit",
+            "delete"
+          ]
+        },
+        {
+          "name": "Hiển thị nhóm quyền",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Hiển thị danh sách các nhóm quyền đã được tạo",
+          "kind": [
+            "create",
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "3",
+      "name": "Quản lý nhóm quyền báo cáo",
+      "section": "I. Website quản trị - hệ thống",
+      "actor": "Quản trị hệ thống (QTHT)",
+      "subActor": "",
+      "description": "Quản lý việc tạo và cấp các loại quyền nhóm báo cáo khác nhau",
+      "actions": [
+        {
+          "name": "Quản lý nhóm quyền báo cáo",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Quản lý việc tạo và cấp các loại quyền nhóm báo cáo khác nhau",
+          "kind": [
+            "create",
+            "export"
+          ]
+        },
+        {
+          "name": "Tìm kiếm nhóm báo cáo",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Tìm kiếm các nhóm báo cáo",
+          "kind": [
+            "search",
+            "export"
+          ]
+        },
+        {
+          "name": "Thêm mới/Sửa/Xóa nhóm báo cáo",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Thêm một nhóm báo cáo mới để cấp cho người dùng cấp thấp hơn Sửa nhóm báo cáo hiện tại Xóa nhóm báo cáo hiện tại",
+          "kind": [
+            "create",
+            "edit",
+            "delete",
+            "export"
+          ]
+        },
+        {
+          "name": "Hiển thị nhóm báo cáo",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Hiển thị danh sách các nhóm báo cáo đã được tạo",
+          "kind": [
+            "create",
+            "view",
+            "export"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "4",
+      "name": "Quản lý đơn vị",
+      "section": "I. Website quản trị - hệ thống",
+      "actor": "Quản trị hệ thống (QTHT)",
+      "subActor": "",
+      "description": "Quản lý các nơi sử dụng theo nhóm quyền thấp hơn",
+      "actions": [
+        {
+          "name": "Quản lý đơn vị",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Quản lý các nơi sử dụng theo nhóm quyền thấp hơn",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Thêm nơi sử dụng mới",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Thêm đơn vị con để quản lý",
+          "kind": [
+            "create"
+          ]
+        },
+        {
+          "name": "Sửa/Xóa nơi sử dụng",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Sửa thông tin nơi sử dụng Xóa nơi sử dụng không dùng đến",
+          "kind": [
+            "edit",
+            "delete",
+            "export"
+          ]
+        },
+        {
+          "name": "Đồng bộ dữ liệu",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Đồng bộ dữ liệu giữa công cụ tìm kiếm và dữ liệu của người dùng",
+          "kind": [
+            "search",
+            "sync"
+          ]
+        },
+        {
+          "name": "Tìm kiếm nơi sử dụng",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Tìm kiếm nơi sử dụng",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Kiểm tra kết nối giữa các dịch vụ",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Kiểm tra kết nối tới các dịch vụ.",
+          "kind": [
+            "sync"
+          ]
+        },
+        {
+          "name": "Thiết lập lại mật khẩu",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Thiết lập lại tất cả mật khẩu con và mật khẩu đơn vị",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "Hiển thị danh sách nơi sử dụng",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Hiển thị danh sách các nơi sử dụng",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "5",
+      "name": "Danh mục dùng chung",
+      "section": "I. Website quản trị - hệ thống",
+      "actor": "Quản trị hệ thống (QTHT)",
+      "subActor": "",
+      "description": "Danh mục dùng chung cho toàn hệ thống",
+      "actions": [
+        {
+          "name": "Danh mục dùng chung",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Danh mục dùng chung cho toàn hệ thống",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Thêm/Sửa/Xóa mới danh mục dùng chung",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Thêm một danh mục dùng chung cho cả hệ thống Sửa thông tin danh mục bao gồm: tên danh mục, mã danh mục, mô tả và trạng thái hoạt động Xóa danh mục dùng chung không sử dụng",
+          "kind": [
+            "create",
+            "edit",
+            "delete",
+            "export"
+          ]
+        },
+        {
+          "name": "Hiển thị danh sách định nghĩa danh mục dùng chung",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Hệ thống danh mục được hiển thị tự động các danh mục được định nghĩa trước trong hệ thống",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Xem danh mục dùng chung",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Xem các danh mục dùng chung",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "6",
+      "name": "Định nghĩa danh mục dùng chung",
+      "section": "I. Website quản trị - hệ thống",
+      "actor": "Quản trị hệ thống (QTHT)",
+      "subActor": "",
+      "description": "Định nghĩa các danh mục dùng chung",
+      "actions": [
+        {
+          "name": "Định nghĩa danh mục dùng chung",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Định nghĩa các danh mục dùng chung",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Thêm/Sửa/Xóa định nghĩa danh mục chung",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Thêm mới định nghĩa danh mục chung bao gồm mã danh mục, tên danh mục và trạng thái hoạt động Sửa định nghĩa danh mục tùy chọn bao gồm mã danh mục, tên danh mục và trạng thái hoạt động Xóa định nghĩa danh mục không sử dụng khỏi hệ thống tùy chọn",
+          "kind": [
+            "create",
+            "edit",
+            "delete"
+          ]
+        },
+        {
+          "name": "Xem định nghĩa danh mục chung",
+          "actor": "Quản trị hệ thống (QTHT)",
+          "description": "Xem định nghĩa danh mục chung",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "7",
+      "name": "Quản lý nhóm quyền",
+      "section": "II. Website quản trị - hệ thống theo đơn vị",
+      "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+      "subActor": "",
+      "description": "Quản lý việc tạo và cấp các loại quyền khác nhau",
+      "actions": [
+        {
+          "name": "Quản lý nhóm quyền",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Quản lý việc tạo và cấp các loại quyền khác nhau",
+          "kind": [
+            "create"
+          ]
+        },
+        {
+          "name": "Tìm kiếm nhóm quyền",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Tìm kiếm nhóm quyền",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Thêm/Sửa/Xóa nhóm quyền mới",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Thêm một nhóm quyền mới để cấp cho người dùng cấp thấp hơn Sửa nhóm quyền hiện tại Xóa nhóm quyền hiện tại",
+          "kind": [
+            "create",
+            "edit",
+            "delete"
+          ]
+        },
+        {
+          "name": "Hiển thị nhóm quyền",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Liệt kê danh sách nhóm quyền hiện tại",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "8",
+      "name": "Quản lý nhóm quyền báo cáo",
+      "section": "II. Website quản trị - hệ thống theo đơn vị",
+      "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+      "subActor": "",
+      "description": "Quản lý việc tạo và cấp các loại quyền khác nhau",
+      "actions": [
+        {
+          "name": "Quản lý nhóm quyền báo cáo",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Quản lý việc tạo và cấp các loại quyền khác nhau",
+          "kind": [
+            "create",
+            "export"
+          ]
+        },
+        {
+          "name": "Tìm kiếm nhóm báo cáo",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Tìm kiếm nhóm báo cáo",
+          "kind": [
+            "search",
+            "export"
+          ]
+        },
+        {
+          "name": "Thêm nhóm báo cáo mới",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Thêm một nhóm báo cáo mới để phân các báo cáo",
+          "kind": [
+            "create",
+            "export"
+          ]
+        },
+        {
+          "name": "Sửa nhóm báo cáo",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Sửa nhóm báo cáo hiện tại",
+          "kind": [
+            "edit",
+            "export"
+          ]
+        },
+        {
+          "name": "Xóa nhóm báo cáo",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Xóa nhóm báo cáo hiện tại",
+          "kind": [
+            "delete",
+            "export"
+          ]
+        },
+        {
+          "name": "Hiển thị nhóm báo cáo",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Liệt kê danh sách nhóm báo cáo hiện tại",
+          "kind": [
+            "view",
+            "export"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "9",
+      "name": "Quản lý cây đơn vị cấp tỉnh",
+      "section": "II. Website quản trị - hệ thống theo đơn vị",
+      "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+      "subActor": "",
+      "description": "Quản lý các đơn vị con",
+      "actions": [
+        {
+          "name": "Quản lý cây đơn vị cấp tỉnh",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Quản lý các đơn vị con",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Thêm đơn vị mới (nơi sử dụng mới)",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Tạo đơn vị cấp nhỏ hơn để quản lý",
+          "kind": [
+            "create"
+          ]
+        },
+        {
+          "name": "Hiển thị các đơn vị trong hệ thống",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Tự động hiển thị các đơn vị có trong hệ thống lên màn hình",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Sửa đơn vị",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Sửa thông tin của đơn vị",
+          "kind": [
+            "edit",
+            "export"
+          ]
+        },
+        {
+          "name": "Xóa đơn vị",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Xóa đơn vị không cần dùng khỏi hệ thống",
+          "kind": [
+            "delete"
+          ]
+        },
+        {
+          "name": "Khôi phục mật khẩu",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Thiết lập lại mật khẩu đơn vị",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "Khôi phục lại toàn bộ mật khẩu của tài khoản con",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Thiết lập lại toàn bộ mật khẩu của các tài khoản con",
+          "kind": [
+            "edit"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "10",
+      "name": "Quản trị người dùng đơn vị cấp tỉnh",
+      "section": "II. Website quản trị - hệ thống theo đơn vị",
+      "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+      "subActor": "",
+      "description": "Quản trị người dùng tại đơn vị",
+      "actions": [
+        {
+          "name": "Quản trị người dùng đơn vị cấp tỉnh",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Quản trị người dùng tại đơn vị",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Thêm người dùng mới",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Tạo một người dùng mới với các thông tin cần thiết.",
+          "kind": [
+            "create",
+            "export"
+          ]
+        },
+        {
+          "name": "Hiển thị danh sách người dùng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Hiển thị danh sách người dùng",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Tìm kiếm người dùng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Tìm kiếm người dùng theo tên người dùng",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Sửa người dùng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Sửa thông tin người dùng với các thông tin đưa ra, riêng tên đăng nhập không sửa được",
+          "kind": [
+            "edit",
+            "export"
+          ]
+        },
+        {
+          "name": "Xóa người dùng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Xóa người dùng không sử dụng khỏi hệ thống",
+          "kind": [
+            "delete"
+          ]
+        },
+        {
+          "name": "Khôi phục mật khẩu",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Thiết lập lại mật khẩu người dùng",
+          "kind": [
+            "edit"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "11",
+      "name": "Cấu hình người dùng",
+      "section": "II. Website quản trị - hệ thống theo đơn vị",
+      "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+      "subActor": "",
+      "description": "Cấu hình , chỉnh sửa các thông tin người dùng",
+      "actions": [
+        {
+          "name": "Cấu hình người dùng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Cấu hình , chỉnh sửa các thông tin người dùng",
+          "kind": [
+            "edit",
+            "export"
+          ]
+        },
+        {
+          "name": "Thêm nhóm người dùng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Thêm một nhóm người dùng mới bao gồm mã nhóm và tên nhóm",
+          "kind": [
+            "create"
+          ]
+        },
+        {
+          "name": "Sửa nhóm người dùng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Sửa thông tin nhóm người dùng hiện tại: chỉ sửa tên nhóm không sửa được mã nhóm",
+          "kind": [
+            "edit",
+            "export"
+          ]
+        },
+        {
+          "name": "Xóa nhóm người dùng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Xóa nhóm người dùng không sử dụng khỏi hệ thống",
+          "kind": [
+            "delete"
+          ]
+        },
+        {
+          "name": "Chọn nút Cấu hình nhóm người dùng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Chức năng này giúp người dùng cấp quyền sử dụng kho và loại hồ sơ cho từng nhóm người dùng",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "Vào nhóm (nhóm duyệt khi đăng ký mượn và chuyển cấp)",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Thực hiện thêm người dùng vào nhóm",
+          "kind": [
+            "create",
+            "approve"
+          ]
+        },
+        {
+          "name": "Rời khỏi nhóm (nhóm duyệt khi đăng ký mượn và chuyển cấp)",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Thực hiện xóa người dùng ra khỏi nhóm",
+          "kind": [
+            "create",
+            "delete",
+            "approve"
+          ]
+        },
+        {
+          "name": "Danh sách người dùng của nhóm",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Quản lý danh sách người dùng của nhóm, cho phép thêm, xóa người dùng ra khỏi nhóm",
+          "kind": [
+            "create",
+            "delete",
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "12",
+      "name": "Quản lý nhóm người duyệt hồ sơ",
+      "section": "II. Website quản trị - hệ thống theo đơn vị",
+      "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+      "subActor": "",
+      "description": "Quản lý nhóm người duyệt hồ sơ",
+      "actions": [
+        {
+          "name": "Quản lý nhóm người duyệt hồ sơ",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Quản lý nhóm người duyệt hồ sơ",
+          "kind": [
+            "approve"
+          ]
+        },
+        {
+          "name": "Danh sách người dùng nhóm duyệt khi đăng ký mượn hồ sơ",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Quản lý danh sách người dùng nhóm duyệt khi đăng ký mượn, cho phép thêm, xóa người dùng ra khỏi nhóm",
+          "kind": [
+            "create",
+            "delete",
+            "approve",
+            "view"
+          ]
+        },
+        {
+          "name": "Danh sách người dùng nhóm duyệt khi chuyển cấp",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Quản lý danh sách người dùng nhóm duyệt khi chuyển cấp, cho phép thêm và xóa người dùng ra khỏi nhóm",
+          "kind": [
+            "create",
+            "delete",
+            "approve",
+            "view"
+          ]
+        },
+        {
+          "name": "Danh sách người dùng nhóm duyệt khi bàn giao",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Quản lý danh sách người dùng nhóm duyệt khi bàn giao, cho phép thêm và xóa người dùng ra khỏi nhóm",
+          "kind": [
+            "create",
+            "delete",
+            "approve",
+            "view"
+          ]
+        },
+        {
+          "name": "Danh sách người dùng nhóm duyệt khi thu hồi",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Quản lý danh sách người dùng nhóm duyệt khi thu hồi, cho phép thêm và xóa người dùng ra khỏi nhóm",
+          "kind": [
+            "create",
+            "delete",
+            "approve",
+            "view"
+          ]
+        },
+        {
+          "name": "Thực hiện thêm user vào nhóm",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Thêm Vào nhóm (nhóm duyệt khi đăng ký mượn, chuyển cấp, bàn giao và thu hồi)",
+          "kind": [
+            "create",
+            "approve"
+          ]
+        },
+        {
+          "name": "Rời khỏi nhóm",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Thực hiện xóa người dùng ra khỏi nhóm",
+          "kind": [
+            "delete"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "13",
+      "name": "Định nghĩa danh mục riêng",
+      "section": "II. Website quản trị - hệ thống theo đơn vị",
+      "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+      "subActor": "",
+      "description": "Quản lý danh mục riêng",
+      "actions": [
+        {
+          "name": "Định nghĩa danh mục riêng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Quản lý danh mục riêng",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Thêm/Sửa/Xóa định nghĩa danh mục riêng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Thêm một định nghĩa danh mục riêng mới bao gồm mã danh mục và tên danh mục Sửa định nghĩa danh mục riêng hiện tại Xóa định nghĩa danh mục riêng không sử dụng khỏi hệ thống",
+          "kind": [
+            "create",
+            "edit",
+            "delete"
+          ]
+        },
+        {
+          "name": "Hiển thị thông tin danh mục riêng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Tự động hiển thị thông tin các danh mục riêng có trong hệ thống",
+          "kind": [
+            "view",
+            "export"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "14",
+      "name": "Cấu hình phòng ban",
+      "section": "II. Website quản trị - hệ thống theo đơn vị",
+      "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+      "subActor": "",
+      "description": "Cấu hình phòng ban trong đơn vị",
+      "actions": [
+        {
+          "name": "Cấu hình phòng ban",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Cấu hình phòng ban trong đơn vị",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "Hiển thị danh sách phòng ban",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Hiển thị danh sách phòng ban theo cha con",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Thêm mới phòng ban",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Thêm mới phòng ban",
+          "kind": [
+            "create"
+          ]
+        },
+        {
+          "name": "Chỉnh sửa phòng ban",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Chỉnh sửa phòng ban",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "Xóa phòng ban",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Xóa phòng ban",
+          "kind": [
+            "delete"
+          ]
+        },
+        {
+          "name": "Hiển thị chi tiết phòng ban",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Hiển thị chi tiết phòng ban",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Import phòng ban theo mẫu",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Import phòng ban theo mẫu",
+          "kind": [
+            "create"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "15",
+      "name": "Danh mục loại hồ sơ",
+      "section": "III. Danh mục",
+      "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+      "subActor": "",
+      "description": "Cung cấp danh mục các loại hồ sơ trong hệ thống",
+      "actions": [
+        {
+          "name": "Danh mục loại hồ sơ",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Cung cấp danh mục các loại hồ sơ trong hệ thống",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Thêm mới/Sửa/Xóa loại hồ sơ",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Thêm mới loại hồ sơ vào hệ thống theo các thông tin yêu cầu Chỉnh sửa loại hồ sơ vào hệ thống theo các thông tin yêu cầu Xóa loại hồ sơ khỏi hệ thống",
+          "kind": [
+            "create",
+            "edit",
+            "delete",
+            "export"
+          ]
+        },
+        {
+          "name": "Cấu hình loại hồ sơ",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Cấu hình loại hồ sơ theo thông tin yêu cầu",
+          "kind": [
+            "edit",
+            "export"
+          ]
+        },
+        {
+          "name": "Hiển thị danh sách loại hồ sơ",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Hiển thị danh sách loại hồ sơ",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "16",
+      "name": "Cấu hình loại hồ sơ",
+      "section": "III. Danh mục",
+      "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+      "subActor": "",
+      "description": "Cấu hình từng loại hồ sơ",
+      "actions": [
+        {
+          "name": "Cấu hình loại hồ sơ",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Cấu hình từng loại hồ sơ",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "Thêm/Sửa/Xóa thuộc tính cho hồ sơ",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Thêm mới thuộc tính cho hồ sơ Sửa thuộc tính cho hồ sơ theo các thông tin cần thiết Xóa thuộc tính cho hồ sơ khi không sử dụng nữa",
+          "kind": [
+            "create",
+            "edit",
+            "delete",
+            "export"
+          ]
+        },
+        {
+          "name": "Thêm/Sửa/Xóa thuộc tính cho thành phần hồ sơ",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Thêm mới/Sửa/Xóa thuộc tính cho thành phần hồ sơ",
+          "kind": [
+            "create",
+            "edit",
+            "delete"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "17",
+      "name": "Danh mục kho hồ sơ",
+      "section": "III. Danh mục",
+      "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+      "subActor": "",
+      "description": "Cung cấp danh mục các kho hồ sơ trong hệ thống",
+      "actions": [
+        {
+          "name": "Danh mục kho hồ sơ",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Cung cấp danh mục các kho hồ sơ trong hệ thống",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Thêm kho mới",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Thêm kho mới vào hệ thống",
+          "kind": [
+            "create"
+          ]
+        },
+        {
+          "name": "Chỉnh sửa kho",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Chỉnh sửa thông tin kho và lưu vào trên hệ thống",
+          "kind": [
+            "edit",
+            "export"
+          ]
+        },
+        {
+          "name": "Xóa thông kho",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Xóa kho khỏi hệ thống",
+          "kind": [
+            "delete"
+          ]
+        },
+        {
+          "name": "Tìm kiếm kho",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Tìm kiếm kho hồ sơ theo tên",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Thay đổi trạng thái kho",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Chuyển kho sang trạng thái kích hoạt / không kích hoạt",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "18",
+      "name": "Danh mục kệ hồ sơ",
+      "section": "III. Danh mục",
+      "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+      "subActor": "",
+      "description": "Cung cấp danh mục các kệ trong hệ thống",
+      "actions": [
+        {
+          "name": "Danh mục kệ hồ sơ",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Cung cấp danh mục các kệ trong hệ thống",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Thêm mới kệ",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Thêm mới kệ theo kho đã chọn với các thông tin cần thiết",
+          "kind": [
+            "create",
+            "export"
+          ]
+        },
+        {
+          "name": "Chỉnh sửa kệ đã chọn",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Chỉnh sửa kệ đã chọn với các thông tin cần thiết",
+          "kind": [
+            "edit",
+            "export"
+          ]
+        },
+        {
+          "name": "Xóa các kệ đã chọn",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Xóa các kệ đã chọn khỏi hệ thống",
+          "kind": [
+            "delete"
+          ]
+        },
+        {
+          "name": "Tìm kiếm",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Tìm kiếm kệ theo tên đã nhập",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Chọn kho",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Chọn kho để tìm kiếm",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Tự động tạo tầng và hộp",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Tự động tạo tầng và hộp",
+          "kind": [
+            "create"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "19",
+      "name": "Danh mục tầng",
+      "section": "III. Danh mục",
+      "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+      "subActor": "",
+      "description": "Danh mục tầng hồ sơ",
+      "actions": [
+        {
+          "name": "Danh mục tầng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Danh mục tầng hồ sơ",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Hiển thị danh sách tầng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Xem danh sách các tầng theo kệ",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Thêm mới tầng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Thêm mới tầng",
+          "kind": [
+            "create"
+          ]
+        },
+        {
+          "name": "Thuộc kho /hiển thị Kho",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Chọn kho, hiển thị thông tin kho để tìm kiếm",
+          "kind": [
+            "search",
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Tự động hiển thị data vào bảng bao gồm tên tầng, tên kệ, mã tầng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Tự động hiển thị data vào bảng bao gồm tên tầng, tên kệ, mã tầng",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Nhập từ để tìm kiếm",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Nhập từ khóa để tìm kiếm, từ khóa theo tên tầng",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Lưu dữ liệu",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Lưu dữ liệu nhập vào",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Chọn nút tìm kiếm",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Tìm kiếm theo tên tầng",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Chỉnh sửa theo tầng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Chỉnh sửa theo tầng, khi nhấn nút chỉnh sửa sẽ hiện ra một cửa sổ con chứa các thông tin cần chỉnh sửa",
+          "kind": [
+            "edit",
+            "export"
+          ]
+        },
+        {
+          "name": "Xóa tầng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Xóa tầng đã chọn khỏi hệ thống",
+          "kind": [
+            "delete"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "20",
+      "name": "Danh mục hộp hồ sơ",
+      "section": "III. Danh mục",
+      "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+      "subActor": "",
+      "description": "Danh mục hộp hồ sơ",
+      "actions": [
+        {
+          "name": "Danh mục hộp hồ sơ",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Danh mục hộp hồ sơ",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Hiển thị danh mục hộp",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Hiển thị danh sách hộp trong bộ hồ sơ",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Thêm mới hộp",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Chọn nút thêm mới tầng sẽ hiển thị ra 1 cửa sổ con để điền các thông tin thêm hộp mới",
+          "kind": [
+            "create",
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Tự động hiển thị dữ liệu vào bảng bao gồm tên tầng, tên kệ, mã tầng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Tự động hiển thị dữ liệu vào bảng bao gồm tên tầng, mã hộp, tên hộp, sức chứa.",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Nhập từ để tìm kiếm",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Nhập từ khóa để tìm kiếm, từ khóa theo tên tầng",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Chọn nút tìm kiếm",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Tìm kiếm theo tên hộp",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Chỉnh sửa theo hộp",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Chỉnh sửa theo hộp, khi nhấn nút chỉnh sửa sẽ hiện ra một cửa sổ con chứa các thông tin cần chỉnh sửa",
+          "kind": [
+            "edit",
+            "export"
+          ]
+        },
+        {
+          "name": "Xóa hộp",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Xóa hộp đã chọn khỏi hệ thống",
+          "kind": [
+            "delete"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "21",
+      "name": "Danh mục mẫu loại văn bản",
+      "section": "III. Danh mục",
+      "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+      "subActor": "",
+      "description": "Danh sách các loại văn bản của thành phần hồ sơ",
+      "actions": [
+        {
+          "name": "Danh mục mẫu loại văn bản",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Danh sách các loại văn bản của thành phần hồ sơ",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Định nghĩa thuộc tính mẫu loại văn bản",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Định nghĩa thuộc tính mẫu loại văn bản",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Chọn vùng thuộc tính mẫu loại văn bản",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Chọn vùng thuộc tính mẫu loại văn bản",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Thêm mới mẫu loại văn bản",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Chọn thêm mới mẫu loại văn bản, một cửa sổ con xuất hiện để điền các thông tin cần thiết thêm mới",
+          "kind": [
+            "create",
+            "export"
+          ]
+        },
+        {
+          "name": "Hiển thị các mẫu loại văn bản",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Tự động hiển thị các mẫu loại văn bản trong hệ thống",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Chỉnh sửa mẫu loại văn bản",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Chọn chỉnh sửa loại văn bản được cấu hình",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "Xóa mẫu loại văn bản",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Xóa mẫu loại văn bản",
+          "kind": [
+            "delete"
+          ]
+        },
+        {
+          "name": "Chi tiết loại văn bản",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Chọn chi tiết loại văn bản thì một cửa sổ con sẽ xuất hiện để hiển thị các thông tin chi tiết của văn bản",
+          "kind": [
+            "view",
+            "export"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "22",
+      "name": "Hệ thống danh mục riêng",
+      "section": "III. Danh mục",
+      "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+      "subActor": "",
+      "description": "Hiển thị các danh mục riêng của hệ thống",
+      "actions": [
+        {
+          "name": "Hệ thống danh mục riêng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Hiển thị các danh mục riêng của hệ thống",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Hiển thị danh mục riêng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Hiển thị danh mục các danh mục con (danh mục riêng)",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Hiển thị dữ liệu của danh mục riêng",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Hiển thị dữ liệu của loại danh mục con",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Chọn hệ thống danh mục, hiển thị các data của danh mục",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Hiển thị danh mục dữ liệu của loại danh mục",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Xóa danh mục",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Xóa dữ liệu danh mục được chọn",
+          "kind": [
+            "delete"
+          ]
+        },
+        {
+          "name": "Thêm mới danh mục con",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Thêm mới dữ liệu danh mục con của danh mục đã chọn.",
+          "kind": [
+            "create"
+          ]
+        },
+        {
+          "name": "Chỉnh sửa danh mục con",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Chỉnh sửa dữ liệu danh mục con của danh mục đã chọn.",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "Tìm kiếm danh mục",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Tìm kiếm các danh mục riêng",
+          "kind": [
+            "search"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "23",
+      "name": "Danh mục phông lưu trữ",
+      "section": "III. Danh mục",
+      "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+      "subActor": "",
+      "description": "Danh mục phông lưu trữ",
+      "actions": [
+        {
+          "name": "Danh mục phông lưu trữ",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Danh mục phông lưu trữ",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Hiển thị danh sách phông lưu trữ",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Màn hình hiển thị danh sách phông lưu trữ.",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Thêm mới phông",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Chọn thêm mới phông, một cửa sổ con xuất hiện để điền các thông tin cần thiết thêm mới",
+          "kind": [
+            "create",
+            "export"
+          ]
+        },
+        {
+          "name": "Hiển thị data của các phông đã lưu",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Tự động hiển thị dữ liệu của các phông trong hệ thống",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Cập nhật phông lưu trữ",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Chọn chức năng chỉnh sửa phông. Một cửa sổ con xuất hiện để cập nhật các trường cần thiết.",
+          "kind": [
+            "edit",
+            "export"
+          ]
+        },
+        {
+          "name": "Xóa phông lưu trữ",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Xóa phông không cần thiết",
+          "kind": [
+            "delete"
+          ]
+        },
+        {
+          "name": "Xem chi tiết phông lưu trữ",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Màn hình xem chi tiết hiển thị đầy đủ các thông tin của phông",
+          "kind": [
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Tìm kiếm phông",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Nhập từ khóa cần tìm kiếm, màn hình trả về danh sách các phông trùng khớp với từ khóa.",
+          "kind": [
+            "search",
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "24",
+      "name": "Danh mục mục lục",
+      "section": "III. Danh mục",
+      "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+      "subActor": "",
+      "description": "Quản lý danh sách mục lục của đơn vị",
+      "actions": [
+        {
+          "name": "Danh mục mục lục",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Quản lý danh sách mục lục của đơn vị",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Tạo mới danh mục mục lục",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Tạo mới danh mục mục lục",
+          "kind": [
+            "create"
+          ]
+        },
+        {
+          "name": "Cập nhật danh mục lục",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Cập nhật danh mục mục lục",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "Xóa danh mục mục lục",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Xóa danh mục mục lục",
+          "kind": [
+            "delete"
+          ]
+        },
+        {
+          "name": "Hiển thị danh sách danh mục mục lục",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Hiển thị danh sách danh mục mục lục",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Phân trang danh mục mục lục",
+          "actor": "Quản trị theo đơn vị sử dụng (QTĐV)",
+          "description": "Phân trang dữ liệu",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "25",
+      "name": "Thêm mới hồ sơ",
+      "section": "IV. Nhập liệu hồ sơ",
+      "actor": "Nhân viên nhập liệu",
+      "subActor": "",
+      "description": "Chức năng thêm mới hồ sơ",
+      "actions": [
+        {
+          "name": "Thêm mới hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Chức năng thêm mới hồ sơ",
+          "kind": [
+            "create"
+          ]
+        },
+        {
+          "name": "Hiển thị màn hình nhập hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Hiển thị và khởi tạo danh mục",
+          "kind": [
+            "create",
+            "view"
+          ]
+        },
+        {
+          "name": "Nhập mới thông tin hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Tạo hồ sơ mới gồm có: tất cả thuộc tính của hồ sơ",
+          "kind": [
+            "create",
+            "export"
+          ]
+        },
+        {
+          "name": "Nhập tiếp hồ sơ mới",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Nhập xong hồ sơ này , sau đó nhập tiếp phần hồ sơ khác",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Tìm kiếm hồ sơ nhập mới",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Tìm kiếm hồ sơ đã nhập trước đó và hiển thị danh sách kết quả",
+          "kind": [
+            "search",
+            "view"
+          ]
+        },
+        {
+          "name": "Hiển thị hồ sơ đã có",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Hiển thị hồ sơ cùng với các thành phần tương ứng",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "In Barcode",
+          "actor": "Nhân viên nhập liệu",
+          "description": "In barcode dựa vào id hồ sơ, id thành phần",
+          "kind": [
+            "export"
+          ]
+        },
+        {
+          "name": "In Qrcode",
+          "actor": "Nhân viên nhập liệu",
+          "description": "In qrcode dựa vào id hồ sơ, id thành phần",
+          "kind": [
+            "export"
+          ]
+        },
+        {
+          "name": "Nhập mới hồ sơ thông qua mã hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Tao mới hồ sơ thông qua mã hồ sơ",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "26",
+      "name": "Thêm thành phần hồ sơ",
+      "section": "IV. Nhập liệu hồ sơ",
+      "actor": "Nhân viên nhập liệu",
+      "subActor": "",
+      "description": "Chọn nút thêm thành phần sẽ xuất hiện một cửa sổ con để người dùng điền thêm các thông tin cần thiết",
+      "actions": [
+        {
+          "name": "Thêm thành phần hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Chọn nút thêm thành phần sẽ xuất hiện một cửa sổ con để người dùng điền thêm các thông tin cần thiết",
+          "kind": [
+            "create",
+            "export"
+          ]
+        },
+        {
+          "name": "Chỉnh sửa tên thành phần hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Chỉnh sửa tên thành phần hồ sơ",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "Hiển thị tập tin mới vào thành phần hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Hiển thị tập tin mới vào thành phần hồ sơ",
+          "kind": [
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Xóa tập tin thành phần hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Xóa tập tin thành phần hồ sơ",
+          "kind": [
+            "delete",
+            "export"
+          ]
+        },
+        {
+          "name": "Chọn loại văn bản áp dụng",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Thay đổi loại văn bản áp dụng vào thành phần hồ sơ",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Cập nhật trạng thái thành phần hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Cập nhật trạng thái thành phần hồ sơ cho phép mượn hay không",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "OCR tập tin hình ảnh hoặc trang của PDF đang hiển thị",
+          "actor": "Nhân viên nhập liệu",
+          "description": "OCR tất cả thông tin của tập tin hiển thị trên màn hình",
+          "kind": [
+            "view",
+            "export",
+            "sync"
+          ]
+        },
+        {
+          "name": "OCR nhiều vùng",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Người dùng kéo thả các vùng trên hình ảnh hoặc trang PDF đang hiển thị, gán tên thuộc tính vào từng vùng. Kết quả trả về là OCR theo các vùng theo tên được thao tác",
+          "kind": [
+            "view",
+            "sync"
+          ]
+        },
+        {
+          "name": "Hiển thị hình ảnh, PDF trong thành phần hiển thị lên màn hình",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Hiển thị hình ảnh, PDF trong thành phần hiển thị lên màn hình",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Hiển thị tập tin mới vào thành phần từ thư mục của tôi",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Hiển thị tập tin mới vào thành phần từ thư mục của tôi",
+          "kind": [
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Hiển thị tập tin thông qua máy Quét",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Hiển thị tập tin thông qua máy Quét",
+          "kind": [
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Thêm, chỉnh sửa, xóa thuộc tính thành phần hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Thêm, chỉnh sửa, xóa thuộc tính thành phần hồ sơ",
+          "kind": [
+            "create",
+            "edit",
+            "delete"
+          ]
+        },
+        {
+          "name": "Cập nhật, thêm thuộc tính thành phần hồ sơ thông qua OCR",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Cập nhật, thêm thuộc tính thành phần hồ sơ thông qua kết quả OCR nhiều vùng và OCR theo mẫu",
+          "kind": [
+            "create",
+            "edit",
+            "sync"
+          ]
+        },
+        {
+          "name": "Hiển thị các thuộc tính, vùng OCR từ loại văn bản",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Hiển thị các thuộc tính, vùng OCR từ loại văn bản được định nghĩa",
+          "kind": [
+            "view",
+            "sync"
+          ]
+        },
+        {
+          "name": "Tải lên các file khác pdf như CAD, BIM, Hỗ trợ xem các file BIM như: ifc, 3dm, 3ds, 3mf, amf, bim, brep, dae, fbx, fcstd, gltf , iges, step, stl, obj, off, ply, wrl",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Tải lên các file khác pdf CAD, BIM, Hỗ trợ xem các file BIM như: ifc, 3dm, 3ds, 3mf, amf, bim, brep, dae, fbx, fcstd, gltf , iges, step, stl, obj, off, ply, wrl.",
+          "kind": [
+            "view",
+            "export"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "27",
+      "name": "Tìm kiếm hồ sơ nhập liệu",
+      "section": "IV. Nhập liệu hồ sơ",
+      "actor": "Nhân viên nhập liệu",
+      "subActor": "",
+      "description": "Tìm kiếm hồ sơ để coi lịch sử của hồ sơ đó",
+      "actions": [
+        {
+          "name": "Tìm kiếm hồ sơ nhập liệu",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Tìm kiếm hồ sơ để coi lịch sử của hồ sơ đó",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Tìm kiếm theo điều kiện lọc",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Tìm kiếm lịch sử hồ sơ dựa vào hồ sơ và khung thời gian được chọn trước đó",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Tìm kiếm theo từ gợi nhớ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Tìm kiếm theo thông tin hồ sơ",
+          "kind": [
+            "search",
+            "export"
+          ]
+        },
+        {
+          "name": "Hiển thị thuộc tính tiêu biểu ở từng kết quả trả về",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Hiển thị thuộc tính tiêu biểu ở từng kết quả trả về",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Hiển thị thông tin hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Hiển thị thông tin hồ sơ được chọn",
+          "kind": [
+            "view",
+            "export"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "28",
+      "name": "Cập nhật hồ sơ",
+      "section": "IV. Nhập liệu hồ sơ",
+      "actor": "Nhân viên nhập liệu",
+      "subActor": "",
+      "description": "Chức năng cập nhật hồ sơ",
+      "actions": [
+        {
+          "name": "Cập nhật hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Chức năng cập nhật hồ sơ",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "Chỉnh sửa thông tin chi tiết hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Cập nhật hồ sơ sau khi hiển thị profile và chỉnh sửa",
+          "kind": [
+            "edit",
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Chỉnh sửa nhanh thành phần hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Chỉnh sửa nhanh thành phần hồ sơ",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "Xóa Thành phần hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Xóa Thành phần hồ sơ",
+          "kind": [
+            "delete"
+          ]
+        },
+        {
+          "name": "Thêm thuộc tính ở thành phần hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Thêm thuộc tính ổ thành phần hồ sơ",
+          "kind": [
+            "create"
+          ]
+        },
+        {
+          "name": "Chỉnh sửa thuộc tính ở thành phần hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Chỉnh sửa thuộc tính ở thành phần hồ sơ",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "Xóa thuộc tính ở thành phần hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Xóa thuộc tính ở thành phần hồ sơ",
+          "kind": [
+            "delete"
+          ]
+        },
+        {
+          "name": "Thêm thuộc tính và giá trị thuộc tính mới",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Thêm thuộc tính và giá trị thuộc tính mới",
+          "kind": [
+            "create"
+          ]
+        },
+        {
+          "name": "Chỉnh sửa thuộc tính và giá trị đã có",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Chỉnh sửa thuộc tính và giá trị đã có",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "Xóa thuộc tính hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Xóa thuộc tính hồ sơ",
+          "kind": [
+            "delete"
+          ]
+        },
+        {
+          "name": "In QRcode hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "In QRcode hồ sơ",
+          "kind": [
+            "export"
+          ]
+        },
+        {
+          "name": "Cập nhật các file khác pdf như CAD, BIM, Hỗ trợ xem các file BIM như: ifc, 3dm, 3ds, 3mf, amf, bim, brep, dae, fbx, fcstd, gltf , iges, step, stl, obj, off, ply, wrl",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Cập nhật các file khác pdf CAD, BIM, Hỗ trợ xem các file BIM như: ifc, 3dm, 3ds, 3mf, amf, bim, brep, dae, fbx, fcstd, gltf , iges, step, stl, obj, off, ply, wrl.",
+          "kind": [
+            "edit",
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "29",
+      "name": "Cập nhật thành phần hồ sơ",
+      "section": "IV. Nhập liệu hồ sơ",
+      "actor": "Nhân viên nhập liệu",
+      "subActor": "",
+      "description": "Chức năng cập nhật thành phần hồ sơ",
+      "actions": [
+        {
+          "name": "Cập nhật thành phần hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Chức năng cập nhật thành phần hồ sơ",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "Chỉnh sửa tên thành phần hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Chỉnh sửa tên thành phần hồ sơ",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "Hiển thị tập tin mới vào thành phần hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Hiển thị tập tin mới vào thành phần hồ sơ",
+          "kind": [
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Xóa tập tin đã có ở thành phần hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Xóa tập tin đã có ở thành phần hồ sơ",
+          "kind": [
+            "delete",
+            "export"
+          ]
+        },
+        {
+          "name": "Thay đổi loại văn bản áp dụng",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Thay đổi loại văn bản áp dụng vào thành phần hồ sơ",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Cập nhật trạng thái thành phần hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Cập nhật trạng thái thành phần hồ sơ cho phép mượn hay không",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "OCR tập tin hình ảnh hoặc trang của PDF đang hiển thị",
+          "actor": "Nhân viên nhập liệu",
+          "description": "OCR tất cả thông tin của tập tin hiển thị trên màn hình",
+          "kind": [
+            "view",
+            "export",
+            "sync"
+          ]
+        },
+        {
+          "name": "OCR nhiều vùng",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Người dùng kéo thả các vùng trên hình ảnh hoặc trang PDF đang hiển thị, gán tên thuộc tính vào từng vùng. Kết quả trả về là OCR theo các vùng theo tên được thao tác",
+          "kind": [
+            "view",
+            "sync"
+          ]
+        },
+        {
+          "name": "Hiển thị hình ảnh, PDF trong thành phần hiển thị lên màn hình",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Hiển thị hình ảnh, PDF trong thành phần hiển thị lên màn hình",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Hiển thị tập tin mới vào thành phần từ thư mục của tôi",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Hiển thị tập tin mới vào thành phần từ thư mục của tôi",
+          "kind": [
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Hiển thị tập tin thông qua máy Quét",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Hiển thị tập tin thông qua máy Quét",
+          "kind": [
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Thêm, chỉnh sửa, xóa thuộc tính thành phần hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Thêm, chỉnh sửa, xóa thuộc tính thành phần hồ sơ",
+          "kind": [
+            "create",
+            "edit",
+            "delete"
+          ]
+        },
+        {
+          "name": "Cập nhật, thêm thuộc tính thành phần hồ sơ thông qua OCR",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Cập nhật, thêm thuộc tính thành phần hồ sơ thông qua kết quả OCR nhiều vùng và OCR theo mẫu",
+          "kind": [
+            "create",
+            "edit",
+            "sync"
+          ]
+        },
+        {
+          "name": "Hiển thị các thuộc tính, vùng OCR từ loại văn bản",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Hiển thị các thuộc tính, vùng OCR từ loại văn bản được định nghĩa",
+          "kind": [
+            "view",
+            "sync"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "30",
+      "name": "Chuyển kho hồ sơ",
+      "section": "IV. Nhập liệu hồ sơ",
+      "actor": "Nhân viên nhập liệu",
+      "subActor": "",
+      "description": "Chức năng chuyển hồ sơ từ kho này sang kho khác",
+      "actions": [
+        {
+          "name": "Chuyển kho hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Chức năng chuyển hồ sơ từ kho này sang kho khác",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Tìm kiếm hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Tìm kiếm hồ sơ để chọn hồ sơ chuyển kho,Tìm kiếm theo điều kiện tùy chọn",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Hiển thị danh sách và thông tin hồ sơ lên trang",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Hiển thị hồ sơ theo điều kiện tìm kiếm lên page",
+          "kind": [
+            "search",
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Chuyển kho 1 hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Chuyển kho 1 hồ sơ",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Chuyển kho nhiều hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Chuyển kho nhiều hồ sơ",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "31",
+      "name": "Tải lên tập tin thông qua ứng dụng Quét",
+      "section": "IV. Nhập liệu hồ sơ",
+      "actor": "Nhân viên nhập liệu",
+      "subActor": "",
+      "description": "Tải lên tập tin qua ứng dụng kết nối đến máy quétkhi thêm chỉnh sửa thành phần hồ sơ",
+      "actions": [
+        {
+          "name": "Tải lên tập tin thông qua ứng dụng Quét",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Tải lên tập tin qua ứng dụng kết nối đến máy quétkhi thêm chỉnh sửa thành phần hồ sơ",
+          "kind": [
+            "create",
+            "edit",
+            "export"
+          ]
+        },
+        {
+          "name": "Tìm kiếm kết nối với ứng dụng Quét",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Người dùng cài đặt ứng dụng quétmà hệ thống cung cấp, trang web sẽ tự động kết nối sử dụng, không sẽ hiện thông báo",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Thiết lập cấu hình Quét",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Thiết lập cấu hình quétở ứng dụng",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "Quét",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Người dùng có thể thay đổi vị trí hình ảnh quétsau khi Quét",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Thay đổi vị trí hình ảnh Quét",
+          "actor": "Nhân viên nhập liệu",
+          "description": "",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Xem trước tập tin PDF các hình ảnh Quét",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Xem trước tập tin PDF các hình ảnh Quét",
+          "kind": [
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Thiết lập cấu hình xuất PDF",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Thiết lập cấu hình xuất PDF theo nhu cầu người dùng: kích thước, chiều ngang, dọc, giữ kích thước gốc, phù hợp cỡ giấy,…",
+          "kind": [
+            "edit",
+            "export"
+          ]
+        },
+        {
+          "name": "Xuất PDF",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Xuất PDF các hình ảnh Quét",
+          "kind": [
+            "export"
+          ]
+        },
+        {
+          "name": "Xuất danh sách hình ảnh",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Xuất danh sách hình ảnh Quét",
+          "kind": [
+            "view",
+            "export"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "32",
+      "name": "Nhận dạng ký tự nhiều vùng",
+      "section": "IV. Nhập liệu hồ sơ",
+      "actor": "Nhân viên nhập liệu",
+      "subActor": "",
+      "description": "Nhận dạng nhiều vùng trên văn bản",
+      "actions": [
+        {
+          "name": "Nhận dạng ký tự nhiều vùng",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Nhận dạng nhiều vùng trên văn bản",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Người dùng kéo vùng OCR trên hình ảnh hoặc trang PDF hiển thị",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Người dùng kéo vùng OCR trên hình ảnh hoặc trang PDF hiển thị sau khi chọn chức năng OCR theo tọa độ",
+          "kind": [
+            "view",
+            "sync"
+          ]
+        },
+        {
+          "name": "Chỉnh sửa kích thước vùng OCR đã kéo",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Chỉnh sửa kích thước vùng OCR đã kéo",
+          "kind": [
+            "edit",
+            "sync"
+          ]
+        },
+        {
+          "name": "Xóa vùng OCR",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Xóa vùng OCR",
+          "kind": [
+            "delete",
+            "sync"
+          ]
+        },
+        {
+          "name": "Gán tên theo thuộc tính đã khai báo vào vùng OCR",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Gán tên theo thuộc tính đã khai báo vào vùng OCR",
+          "kind": [
+            "sync"
+          ]
+        },
+        {
+          "name": "Thay đổi tên của vùng",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Thay đổi tên của vùng",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Xử lý OCR theo vùng nhận dạng",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Xử lý OCR theo vùng nhận dạng",
+          "kind": [
+            "sync"
+          ]
+        },
+        {
+          "name": "Chỉnh sửa kết quả OCR trả về",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Chỉnh sửa kết quả OCR trả về sau khi khi so khớp với tập tin",
+          "kind": [
+            "edit",
+            "export",
+            "sync"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "33",
+      "name": "Thanh lý hồ sơ",
+      "section": "IV. Nhập liệu hồ sơ",
+      "actor": "Nhân viên kiểm duyệt",
+      "subActor": "",
+      "description": "Thanh lý các hồ sơ không sử dụng trên hệ thống",
+      "actions": [
+        {
+          "name": "Thanh lý hồ sơ",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Thanh lý các hồ sơ không sử dụng trên hệ thống",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Tạo mới phiếu thanh lý hồ sơ",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Tạo mới 1 phiếu thanh lý các hồ sơ",
+          "kind": [
+            "create"
+          ]
+        },
+        {
+          "name": "Tìm kiếm hồ sơ cần thanh lý",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Tìm kiếm và chọn các hồ sơ thanh lý",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Sửa phiếu thanh lý hồ sơ",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Sửa phiếu thanh lý hồ sơ",
+          "kind": [
+            "edit"
+          ]
+        },
+        {
+          "name": "Xóa phiếu thanh lý hồ sơ",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Xóa phiếu thanh lý hồ sơ",
+          "kind": [
+            "delete"
+          ]
+        },
+        {
+          "name": "Gọi api truy vấn",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Gọi api truy vấn tìm kiếm",
+          "kind": [
+            "search"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "34",
+      "name": "Import hồ sơ",
+      "section": "IV. Nhập liệu hồ sơ",
+      "actor": "Nhân viên nhập liệu",
+      "subActor": "",
+      "description": "",
+      "actions": [
+        {
+          "name": "Nhập hồ sơ, tài liệu bằng tập tin excel",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Sau khi nhận tập tin excel mẫu từ danh mục loại văn bản, điền hồ sơcần nhập vào tập tin excel đó (giới hạn 100 hồ sơ). Chọn Kho, kệ, tầng, hợp, loại văn bản mong muốn để nhập tất cả hồ sơ đã liệt kê ở excel",
+          "kind": [
+            "export"
+          ]
+        },
+        {
+          "name": "Hiển thị chức năng nhập hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Tải thông tin hồ sơ nhập,Tìm kiếm hồ sơ, dạng hồ sơ xuất",
+          "kind": [
+            "search",
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Cập nhật hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Chuyển qua màn hình thêm hồ sơ để cập nhật",
+          "kind": [
+            "create",
+            "edit"
+          ]
+        },
+        {
+          "name": "Chuyển duyệt hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Chuyển trạng thái hồ sơ sang trạng thái có thể xuất bản",
+          "kind": [
+            "approve",
+            "export"
+          ]
+        },
+        {
+          "name": "Xóa hồ sơ nhập",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Xóa hồ sơ nhập",
+          "kind": [
+            "delete"
+          ]
+        },
+        {
+          "name": "Xuất excel",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Chọn hồ sơ cần xuất, xuất ra tập tin excel gồm thông tin của của hồ sơ và các document tương ứng, chừa cột để người dùng nhập tên đính kèm để nhập",
+          "kind": [
+            "export"
+          ]
+        },
+        {
+          "name": "Tải tập tin excel để nhập đính kèm",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Tải tập tin excel để nhập đính kèm",
+          "kind": [
+            "export"
+          ]
+        },
+        {
+          "name": "Tải tập tin zip của thành phần hồ sơ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Tải tập tin zip, giải nén xác thực chỉ lấy tập tin có định dạng tập tin",
+          "kind": [
+            "export"
+          ]
+        },
+        {
+          "name": "Nhập tệp đính kèm",
+          "actor": "Nhân viên nhập liệu",
+          "description": "phù hợp Từ tập tin excel và tập tin rar xử lý nhập tất cả đính kèm phù hợp bảo gồm quá trình tạo, ocr fulltext để tìm kiếm,tạo tập tin pdf , dữ liệu tìm kiếm, ...",
+          "kind": [
+            "search",
+            "create",
+            "export",
+            "sync"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "35",
+      "name": "Xuất bản hồ sơ",
+      "section": "V. Xuất bản hồ sơ",
+      "actor": "Nhân viên kiểm duyệt",
+      "subActor": "",
+      "description": "Xuất bản hồ sơ khai thác",
+      "actions": [
+        {
+          "name": "Xuất bản hồ sơ",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Xuất bản hồ sơ khai thác",
+          "kind": [
+            "approve",
+            "export"
+          ]
+        },
+        {
+          "name": "Hiển thi màn hình xuất bản hồ sơ",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Hiển thị màn hình xuất bản hồ sơ",
+          "kind": [
+            "approve",
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Tìm kiếm hồ sơ",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Cách tìm hồ sơ theo từ gợi nhớ",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Tìm kiếm theo nội dung văn bản",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Chuyển sang cách tìm hồ sơ theo nội dung của văn bản",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Thêm điều kiện",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Mở bảng nhập thêm điều kiện để tìm kiếm",
+          "kind": [
+            "search",
+            "create"
+          ]
+        },
+        {
+          "name": "Xuất bản hồ sơ",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Xuất bản hồ sơ đã chọn",
+          "kind": [
+            "approve",
+            "export"
+          ]
+        },
+        {
+          "name": "Xem hồ sơ chi tiết",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Chọn hồ sơ để thao tác",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Duyệt xuất bản tài liệu nội bộ",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Xuất bản hồ sơ mong muốn",
+          "kind": [
+            "approve",
+            "export"
+          ]
+        },
+        {
+          "name": "Báo cáo tài liệu không hợp lệ",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Báo cáo tài liệu trong bộ hồ sơ là không hợp lệ",
+          "kind": [
+            "export"
+          ]
+        },
+        {
+          "name": "Ký số lên bộ hồ sơ",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Ký số tài liệu trong bộ hồ sơ",
+          "kind": [
+            "approve"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "36",
+      "name": "Huỷ xuất bản hồ sơ",
+      "section": "V. Xuất bản hồ sơ",
+      "actor": "Nhân viên kiểm duyệt",
+      "subActor": "",
+      "description": "Huỷ xuất bản hồ sơ mong muốn",
+      "actions": [
+        {
+          "name": "Huỷ xuất bản hồ sơ",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Huỷ xuất bản hồ sơ mong muốn",
+          "kind": [
+            "delete",
+            "approve",
+            "export"
+          ]
+        },
+        {
+          "name": "Tìm kiếm hồ sơ",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Tìm kiếm hồ sơ theo điều kiện",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Chọn thêm điều kiện",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Thêm điều kiện để tìm kiếm, màn hình sẽ xổ ra các điều kiện để người dùng lựa chọn",
+          "kind": [
+            "search",
+            "create"
+          ]
+        },
+        {
+          "name": "Chọn kho hồ sơ",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Chọn kho hồ sơ mà hồ sơ cần tìm chứa trong đó",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Hiển thị danh sách hồ sơ",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Hiển thị tên hồ sơ cần tìm kiếm",
+          "kind": [
+            "search",
+            "view"
+          ]
+        },
+        {
+          "name": "Hủy Xuất Bản nội bộ",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Hủy Xuất Bản Hồ Sơ",
+          "kind": [
+            "delete",
+            "approve",
+            "export"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "37",
+      "name": "Hồ sơ không hợp lệ",
+      "section": "V. Xuất bản hồ sơ",
+      "actor": "Nhân viên kiểm duyệt",
+      "subActor": "",
+      "description": "Tìm kiếm hồ sơ không hợp lệ",
+      "actions": [
+        {
+          "name": "Hồ sơ không hợp lệ",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Tìm kiếm hồ sơ không hợp lệ",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Lựa chọn tìm kiếm theo thông tin hồ sơ hoặc tìm kiếm theo nội dung văn bản.",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Nếu lựa chọn theo thông tin hồ sơ thì có thể tìm kiếm thêm theo điều kiện, Còn nếu lựa chọn tìm kiếm theo nội dung thì mục điều kiện sẽ bị ẩn đi.",
+          "kind": [
+            "search",
+            "create",
+            "export"
+          ]
+        },
+        {
+          "name": "Chọn thêm điều kiện",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Thêm điều kiện để tìm kiếm, màn hình sẽ xổ ra các điều kiện để người dùng lựa chọn",
+          "kind": [
+            "search",
+            "create"
+          ]
+        },
+        {
+          "name": "Tìm kiếm hồ sơ",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Nhập tên hồ sơ cần tìm kiếm",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Hiển thị danh sách hồ sơ không hợp lệ",
+          "actor": "Nhân viên kiểm duyệt",
+          "description": "Hiển thị danh sách hồ sơ không hợp lệ",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "38",
+      "name": "Tìm kiếm hồ sơ Đăng ký mượn hồ sơ theo điều kiện",
+      "section": "VI. Mượn trả hồ sơ online",
+      "actor": "Nhân viên khai thác hồ sơ",
+      "subActor": "",
+      "description": "Đăng ký mượn hồ sơ",
+      "actions": [
+        {
+          "name": "Tìm kiếm hồ sơ Đăng ký mượn hồ sơ theo điều kiện",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Đăng ký mượn hồ sơ",
+          "kind": [
+            "search",
+            "create"
+          ]
+        },
+        {
+          "name": "Tìm kiếm theo kho hồ sơ",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Tìm kiếm các hồ sơ cho phép mượn được lọc theo kho.",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Tìm kiếm theo phông",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Tìm kiếm các hồ sơ cho phép mượn được lọc theo phông.",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Tìm kiếm theo loại hồ sơ",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Tìm kiếm hồ sơ cho phép mượn được lọc theo loại hồ sơ",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Tìm kiếm theo điều kiện từ ngày đến ngày",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Tìm kiếm các hồ sơ cho phép mượn trong phạm vi từ ngày đến ngày.",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Tìm kiếm theo mã hồ sơ",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Tìm kiếm bộ hồ sơ theo Mã hồ sơ",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Tim kiếm theo tên hộp, mã hộp",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Tìm kiếm các bộ hồ sơ nằm trong hộp có tên hộp, mã hộp",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Tìm kiếm theo điều kiện thuộc tính",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Tìm kiếm theo điều kiện thuộc tính",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Tìm kiếm theo điều kiện \"Và\"của các thuộc tính nhập vào",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Tìm kiếm theo điều kiện \"Và\" của các thuộc tính nhập vào",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Hiển thị thông tin nhập vào",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Hiển thị thông tin lên màn hình",
+          "kind": [
+            "view",
+            "export"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "39",
+      "name": "Đăng ký mượn hồ sơ",
+      "section": "VI. Mượn trả hồ sơ online",
+      "actor": "Nhân viên khai thác hồ sơ",
+      "subActor": "",
+      "description": "Đăng ký mượn hồ sơ",
+      "actions": [
+        {
+          "name": "Đăng ký mượn hồ sơ",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Đăng ký mượn hồ sơ",
+          "kind": [
+            "create"
+          ]
+        },
+        {
+          "name": "Danh sách hồ sơ được phép mượn",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Hiển thị danh sách hồ sơ được phép mượn",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Danh sách hồ sơ được tìm kiếm",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Hiển thị danh sách hồ sơ theo kết quả tìm kiếm",
+          "kind": [
+            "search",
+            "view"
+          ]
+        },
+        {
+          "name": "Chọn hồ sơ đưa vào giỏ hàng",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Chọn hồ sơ muốn mượn và đưa vào giỏ hàng.",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Lưu thông tin phiếu mượn",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Lưu thông tin phiếu mượn hồ sơ",
+          "kind": [
+            "export"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "40",
+      "name": "Xem hồ sơ trực tuyến",
+      "section": "VI. Mượn trả hồ sơ online",
+      "actor": "Nhân viên khai thác hồ sơ",
+      "subActor": "",
+      "description": "Xem hồ sơ trực tuyến",
+      "actions": [
+        {
+          "name": "Xem hồ sơ trực tuyến",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Xem hồ sơ trực tuyến",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Chọn trạng thái",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Chọn trạng thái mượn tất cả, còn hạn mượn, chờ duyệt, hết hạn mượn.",
+          "kind": [
+            "approve"
+          ]
+        },
+        {
+          "name": "Chọn ngày bắt đầu",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Chọn ngày bắt đầu trong khoảng thời gian cần tìm kiếm",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Chọn ngày kết thúc",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Chọn ngày kết thúc trong khoảng thời gian cần tìm kiếm",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Tìm kiếm những phiếu mượn",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Chọn nút tìm kiếm để tìm kiếm hồ sơ theo các điều kiện",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Xem hồ sơ trực tuyến",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Hiển thị danh sách hồ sơ được tìm thấy sau khi tìm kiếm",
+          "kind": [
+            "search",
+            "view"
+          ]
+        },
+        {
+          "name": "Hiển thị chi tiết hồ sơ",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Chi tiết số lần hồ sơ được mượn, tên hồ sơ, mã hồ sơ",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Lọc hồ sơ trên danh sách đã tìm kiếm",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Tìm kiếm theo tên trong danh sách đã được tìm kiếm trước đó",
+          "kind": [
+            "search",
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "41",
+      "name": "Danh sách lịch sử mượn hồ sơ",
+      "section": "VI. Mượn trả hồ sơ online",
+      "actor": "Nhân viên khai thác hồ sơ",
+      "subActor": "",
+      "description": "Cung cấp lịch sử danh sách phiếu mượn theo thời",
+      "actions": [
+        {
+          "name": "Danh sách lịch sử mượn hồ sơ",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Cung cấp lịch sử danh sách phiếu mượn theo thời gian và trạng thái của nó (chờ duyệt, còn hạn và hết hạn) khi người dùng tìm kiếm.",
+          "kind": [
+            "search",
+            "approve",
+            "view"
+          ]
+        },
+        {
+          "name": "Chọn điều kiện trạng thái",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Chọn trạng thái lịch sử mượn hồ sơ tất cả, còn hạn mượn, chờ duyệt, hết hạn mượn.",
+          "kind": [
+            "approve"
+          ]
+        },
+        {
+          "name": "Chọn điều kiện ngày bắt đầu",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Chọn ngày bắt đầu trong khoảng thời gian cần tìm kiếm",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Chọn điều kiện ngày kết thúc",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Chọn ngày kết thúc trong khoảng thời gian cần tìm kiếm",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Chọn nút tìm kiếm hồ sơ",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Chọn nút tìm kiếm để tìm kiếm hồ sơ theo các lựa chọn trạng thái, ngày bắt đầu, ngày kết thúc đã chọn lựa",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Danh sách hồ sơ được tìm kiếm",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Hiển thị danh sách hồ sơ được tìm thấy sau khi tìm kiếm.",
+          "kind": [
+            "search",
+            "view"
+          ]
+        },
+        {
+          "name": "Lọc nhanh kết quả tìm kiếm",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Tìm kiếm theo tên trong danh sách đã được tìm kiếm trước đó",
+          "kind": [
+            "search",
+            "view"
+          ]
+        },
+        {
+          "name": "Sửa thông tin phiếu mượn hồ sơ",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Sửa thông tin phiếu mượn hồ sơ",
+          "kind": [
+            "edit",
+            "export"
+          ]
+        },
+        {
+          "name": "Xóa thông tin phiếu mượn hồ sơ",
+          "actor": "Nhân viên khai thác hồ sơ",
+          "description": "Xóa thông tin phiếu mượn hồ sơ",
+          "kind": [
+            "delete",
+            "export"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "42",
+      "name": "Tìm kiếm hồ sơ duyệt mượn hồ sơ",
+      "section": "VII. Duyệt hồ sơ khi đăng ký mượn",
+      "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+      "subActor": "",
+      "description": "Tìm kiếm khai thác hồ sơ",
+      "actions": [
+        {
+          "name": "Tìm kiếm hồ sơ duyệt mượn hồ sơ",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Tìm kiếm khai thác hồ sơ",
+          "kind": [
+            "search",
+            "approve"
+          ]
+        },
+        {
+          "name": "Tìm kiếm theo từ ngày đến ngày",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Tìm kiếm theo từ ngày đến ngày",
+          "kind": [
+            "search"
+          ]
+        },
+        {
+          "name": "Tìm kiếm theo trạng thái",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Trạng thái : chờ duyệt, chờ gia hạn, đã duyệt, đã từ chối",
+          "kind": [
+            "search",
+            "approve"
+          ]
+        },
+        {
+          "name": "Hiển thị thông tin hồ sơ giấy cần duyệt mượn",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Hiển thị Thông tin bộ hồ sơ giấy",
+          "kind": [
+            "approve",
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Hiển thị thông tin hồ sơ online cần duyệt mượn",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Hiển thị thông tin hồ sơ online cần duyệt mượn",
+          "kind": [
+            "approve",
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Tìm kiếm theo thông tin duyệt gia hạn hồ sơ mượn",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Tìm kiếm theo thông tin duyệt gia hạn hồ sơ mượn",
+          "kind": [
+            "search",
+            "approve",
+            "export"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "43",
+      "name": "Duyệt mượn hồ sơ",
+      "section": "VII. Duyệt hồ sơ khi đăng ký mượn",
+      "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+      "subActor": "",
+      "description": "Duyệt mượn hồ sơ khi đăng ký mượn",
+      "actions": [
+        {
+          "name": "Duyệt mượn hồ sơ",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Duyệt mượn hồ sơ khi đăng ký mượn",
+          "kind": [
+            "create",
+            "approve"
+          ]
+        },
+        {
+          "name": "Chọn hồ sơ sau khi tìm kiếm",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Chọn hồ sơ cần xem xét gia hạn",
+          "kind": [
+            "search",
+            "view"
+          ]
+        },
+        {
+          "name": "Hiển thị thông tin hồ sơ",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Hiển thị thông tin bộ hồ sơ",
+          "kind": [
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Hiển thị thông tin thành phần hồ sơ",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Hiển thị thông tin chi tiết bộ hồ sơ",
+          "kind": [
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Xem thông tin phiếu mượn",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Xem thông tin phiếu mượn",
+          "kind": [
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Duyệt phiếu mượn",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Duyệt phiếu mượn",
+          "kind": [
+            "approve"
+          ]
+        },
+        {
+          "name": "Không đồng ý duyệt - Chuyển cấp",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Chuyển duyệt phiếu mượn",
+          "kind": [
+            "approve"
+          ]
+        },
+        {
+          "name": "Ghi nhận log đăng ký duyệt mượn",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Ghi nhận nhật ký đã duyệt mượn",
+          "kind": [
+            "create",
+            "approve"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "44",
+      "name": "Danh sách các loại báo cáo",
+      "section": "VIII. Báo cáo thống kê",
+      "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+      "subActor": "",
+      "description": "Quản trị và danh sách các báo cáo thống kê",
+      "actions": [
+        {
+          "name": "Danh sách các loại báo cáo",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Quản trị và danh sách các báo cáo thống kê",
+          "kind": [
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Xem danh sách các loại báo cáo, Thêm mới báo cáo, Chỉnh sửa báo cáo",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Xem danh sách các loại báo cáo khác nhau trong hệ thống, tự động hiển thị lên khi vào trang Thêm mới báo cáo 1 mẫu báo cáo trên hệ thống Chỉnh sửa báo cáo 1 mẫu báo cáo có sẵn trên hệ thống",
+          "kind": [
+            "create",
+            "edit",
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Thêm Mã, Tên báo cáo, Thêm mô tả cho báo cáo",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Nhập vào Mã báo cáo và Tên báo cáo (kiểm tra Mã báo cáo đã tồn tại) Thêm mới mô tả",
+          "kind": [
+            "create",
+            "export"
+          ]
+        },
+        {
+          "name": "Chọn tập tin báo cáo đã thiết kế tải lên hệ thống",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Chọn tập tin để upload lên hệ thống từ máy người dùng",
+          "kind": [
+            "create",
+            "export"
+          ]
+        },
+        {
+          "name": "Tên loại đã khai báo khi thiết kế báo cáo",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Tên loại khai báo trong hệ thống",
+          "kind": [
+            "export"
+          ]
+        },
+        {
+          "name": "Chọn loại dữ liệu sẽ trả về cho báo cáo",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Chọn loại dữ liệu để lưu",
+          "kind": [
+            "export"
+          ]
+        },
+        {
+          "name": "Nhập vào Tham số cho báo cáo",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Cấu hình tham số cho báo cáo mới loại tham số, tên tham số",
+          "kind": [
+            "edit",
+            "export"
+          ]
+        },
+        {
+          "name": "Loại điều khiển hiển thị khi xem báo cáo",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Chọn loại điều khiển cho tham số DateTime, combobox các loại danh mục",
+          "kind": [
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Xóa các báo cáo đã định nghĩa",
+          "actor": "Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Xóa các báo cáo đã định nghĩa",
+          "kind": [
+            "delete",
+            "export"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "45",
+      "name": "Xem báo cáo chi tiết",
+      "section": "VIII. Báo cáo thống kê",
+      "actor": "Nhân viên khai thác hồ sơ/Nhân viên kiểm duyệt",
+      "subActor": "",
+      "description": "Xem báo cáo chi tiết của từng loại báo cáo",
+      "actions": [
+        {
+          "name": "Xem báo cáo chi tiết",
+          "actor": "Nhân viên khai thác hồ sơ/Nhân viên kiểm duyệt",
+          "description": "Xem báo cáo chi tiết của từng loại báo cáo",
+          "kind": [
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Chọn định dạng cho tập tin cần xem(word/excel/PDF)",
+          "actor": "Nhân viên khai thác hồ sơ/Nhân viên kiểm duyệt",
+          "description": "Xem báo cáo chi tiết của từng loại báo cáo",
+          "kind": [
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Chọn ngày bắt đầu",
+          "actor": "Nhân viên khai thác hồ sơ/Nhân viên kiểm duyệt",
+          "description": "Chọn ngày bắt đầu trong khoảng thời gian muốn xem của loại báo cáo cần xem",
+          "kind": [
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Chọn ngày kết thúc",
+          "actor": "Nhân viên khai thác hồ sơ/Nhân viên kiểm duyệt",
+          "description": "Chọn ngày kết thúc trong khoảng thời gian muốn xem của loại báo cáo cần xem",
+          "kind": [
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Chọn loại định nghĩa báo cáo",
+          "actor": "Nhân viên khai thác hồ sơ/Nhân viên kiểm duyệt",
+          "description": "Chọn loại báo cáo cần chọn",
+          "kind": [
+            "export"
+          ]
+        },
+        {
+          "name": "Chọn nút xem báo cáo",
+          "actor": "Nhân viên khai thác hồ sơ/Nhân viên kiểm duyệt",
+          "description": "Chọn nút xem thì cửa sổ con mới xuất hiện để chọn lựa chọn",
+          "kind": [
+            "view",
+            "export"
+          ]
+        },
+        {
+          "name": "Chọn lưu tập tin dưới dang pdf hay excel",
+          "actor": "Nhân viên khai thác hồ sơ/Nhân viên kiểm duyệt",
+          "description": "Chọn lưu tập tin về máy người dùng hoặc mở tập tin với định dạng đã chọn trực tiếp",
+          "kind": [
+            "export"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "46",
+      "name": "Đăng nhập tài khoản người dùng",
+      "section": "IX. Webportal-quản lý thông tin user đăng nhập",
+      "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+      "subActor": "",
+      "description": "Chức năng đăng nhập hệ thống",
+      "actions": [
+        {
+          "name": "Đăng nhập tài khoản người dùng",
+          "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Chức năng đăng nhập hệ thống",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Người dùng nhập tên tài khoản và mật khẩu",
+          "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Nhập tài khoản và mật khẩu người dùng",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Kiểm tra thông tin đăng nhập",
+          "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Hệ thống kiểm tra thông tin tài khoản",
+          "kind": [
+            "export"
+          ]
+        },
+        {
+          "name": "Trả về kết quả đăng nhập",
+          "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Trả về kết quả tài khoản đăng nhập thành công hoặc thất bại",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Cập nhật trang chủ khi đăng nhập thành công",
+          "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Hiển thị trang chủ khi đăng nhập thành công",
+          "kind": [
+            "edit",
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "47",
+      "name": "Đăng ký thông tin người dùng",
+      "section": "IX. Webportal-quản lý thông tin user đăng nhập",
+      "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+      "subActor": "",
+      "description": "Chức năng thông tin người dùng",
+      "actions": [
+        {
+          "name": "Đăng ký thông tin người dùng",
+          "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Chức năng thông tin người dùng",
+          "kind": [
+            "export"
+          ]
+        },
+        {
+          "name": "Người dùng nhập thông tin cá nhân",
+          "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Người dùng nhập họ tên, số điện thoại, địa chỉ, tên đăng nhập, mật khẩu để đăng ký thông tin tài khoản",
+          "kind": [
+            "create",
+            "export"
+          ]
+        },
+        {
+          "name": "Hệ thống kiểm tra dữ liệu đầu vào.",
+          "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Hệ thống kiểm tra thông tin người dùng cung cấp và yêu cầu khai báo thêm nếu thiếu.",
+          "kind": [
+            "create",
+            "export"
+          ]
+        },
+        {
+          "name": "Cập nhật thông tin người dùng vào hệ thống.",
+          "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Lưu trữ thông tin người dùng vào hệ thống",
+          "kind": [
+            "export"
+          ]
+        },
+        {
+          "name": "Thông báo kết quả đăng ký cho người dùng.",
+          "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Thông báo thông tin đăng ký thành công tài khoản cho người dùng",
+          "kind": [
+            "create",
+            "export"
+          ]
+        },
+        {
+          "name": "Trở về trang chủ cho người dùng đăng nhập.",
+          "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Hiển thị trang chủ cho người dùng",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "48",
+      "name": "Thay đổi mật khẩu",
+      "section": "IX. Webportal-quản lý thông tin user đăng nhập",
+      "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+      "subActor": "",
+      "description": "Chức năng thay đổi mật khẩu người dùng",
+      "actions": [
+        {
+          "name": "Thay đổi mật khẩu",
+          "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Chức năng thay đổi mật khẩu người dùng",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Người dùng vào thông tin người dùng.",
+          "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Người dùng vào thông tin người dùng bên góc phải phía trên màn hình.",
+          "kind": [
+            "export"
+          ]
+        },
+        {
+          "name": "Người dùng chọn chức năng \"Đổi mật khẩu\".",
+          "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Chọn chức năng đổi mật khẩu",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Người dùng điền mật khẩu mới vào.",
+          "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Người dùng nhập đặt mật khẩu mới và xác nhận lại mật khẩu",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Hệ thống kiểm tra dữ liệu đầu vào.",
+          "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Hệ thống kiểm tra dữ liệu.",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Cập nhật mật khẩu mới đã được mã hóa của người dùng vào hệ thống",
+          "actor": "Quản trị hệ thống (QTHT), Quản trị theo đơn vị sử dụng (QTĐV), Nhân viên nhập liệu, Nhân viên kiểm duyệt, Nhân viên khai thác hồ sơ, Nhân viên duyệt hồ sơ mượn (NDM)",
+          "description": "Hệ thống cập nhật dữ liệu mật khẩu mới",
+          "kind": [
+            "edit"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "49",
+      "name": "Chuyển tập tin Pdf sang chữ giữ cấu trúc",
+      "section": "X. API OCR các biểu mẫu",
+      "actor": "Nhân viên nhập liệu",
+      "subActor": "",
+      "description": "Chuyển tập tin Pdf sang chữ giữ cấu trúc",
+      "actions": [
+        {
+          "name": "Chuyển tập tin Pdf sang chữ giữ cấu trúc",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Chuyển tập tin Pdf sang chữ giữ cấu trúc",
+          "kind": [
+            "export",
+            "sync"
+          ]
+        },
+        {
+          "name": "Chọn tập tin Pdf cần chuyển",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Chọn tập tin Pdf cần chuyển",
+          "kind": [
+            "export"
+          ]
+        },
+        {
+          "name": "Upload tập tin lên hệ thống",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Upload tập tin lên hệ thống",
+          "kind": [
+            "create",
+            "export"
+          ]
+        },
+        {
+          "name": "Xử lý OCR fulltext nội dung tập tin",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Gọi api xử lý ocr fulltext giữ cấu trúc",
+          "kind": [
+            "export",
+            "sync"
+          ]
+        },
+        {
+          "name": "Xử lý phần định dạng văn bản ra theo cấu trúc",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Xử lý phần định dạng văn bản ra theo cấu trúc",
+          "kind": [
+            "view"
+          ]
+        },
+        {
+          "name": "Xuất dữ liệu tập tin chữ",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Xuất dữ liệu tập tin chữ",
+          "kind": [
+            "export"
+          ]
+        },
+        {
+          "name": "Hiển thị kết quả trả về theo cấu trúc",
+          "actor": "Nhân viên nhập liệu",
+          "description": "Trả về kết quả cho người sử dụng",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 1"
+    },
+    {
+      "id": "GĐ2-1",
+      "name": "Quản lý tài liệu",
+      "section": "Giai đoạn 2 - Mở rộng nghiệp vụ",
+      "actor": "Theo phân quyền đơn vị",
+      "subActor": "",
+      "description": "Chức năng tạo, lưu trữ, phân loại, tìm kiếm, xem, chỉnh sửa và xuất các tài liệu số hóa.",
+      "actions": [
+        {
+          "name": "Quản lý tài liệu",
+          "actor": "Theo phân quyền đơn vị",
+          "description": "Chức năng tạo, lưu trữ, phân loại, tìm kiếm, xem, chỉnh sửa và xuất các tài liệu số hóa.",
+          "kind": [
+            "search",
+            "create",
+            "edit",
+            "view",
+            "export"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 2"
+    },
+    {
+      "id": "GĐ2-2",
+      "name": "Quản lý quy trình làm việc (Workflow)",
+      "section": "Giai đoạn 2 - Mở rộng nghiệp vụ",
+      "actor": "Theo phân quyền đơn vị",
+      "subActor": "",
+      "description": "Tự động hóa các bước phê duyệt, xem xét, luân chuyển hồ sơ trong nội bộ.",
+      "actions": [
+        {
+          "name": "Quản lý quy trình làm việc (Workflow)",
+          "actor": "Theo phân quyền đơn vị",
+          "description": "Tự động hóa các bước phê duyệt, xem xét, luân chuyển hồ sơ trong nội bộ.",
+          "kind": [
+            "approve",
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 2"
+    },
+    {
+      "id": "GĐ2-3",
+      "name": "Phân quyền truy cập",
+      "section": "Giai đoạn 2 - Mở rộng nghiệp vụ",
+      "actor": "Theo phân quyền đơn vị",
+      "subActor": "",
+      "description": "Cho phép thiết lập quyền truy cập khác nhau cho từng người dùng hoặc nhóm người dùng dựa trên vai trò của họ",
+      "actions": [
+        {
+          "name": "Phân quyền truy cập",
+          "actor": "Theo phân quyền đơn vị",
+          "description": "Cho phép thiết lập quyền truy cập khác nhau cho từng người dùng hoặc nhóm người dùng dựa trên vai trò của họ",
+          "kind": [
+            "edit"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 2"
+    },
+    {
+      "id": "GĐ2-6",
+      "name": "Phần mềm có tích hợp OCR AI",
+      "section": "Giai đoạn 2 - Mở rộng nghiệp vụ",
+      "actor": "Theo phân quyền đơn vị",
+      "subActor": "",
+      "description": "Phần mềm có tích hợp OCR AI để bóc tách các trường dữ liệu để không bị sai sát trong quá trình nhập liệu và đưa về quy chuẩn Sử dụng trí tuệ nhân tạo (AI) để tự động trích xuất dữ liệu từ tài liệu số hóa (ví dụ: thông tin từ hóa đơn, hợp đồng, thanh toán, quyết định,...).",
+      "actions": [
+        {
+          "name": "Phần mềm có tích hợp OCR AI",
+          "actor": "Theo phân quyền đơn vị",
+          "description": "Phần mềm có tích hợp OCR AI để bóc tách các trường dữ liệu để không bị sai sát trong quá trình nhập liệu và đưa về quy chuẩn Sử dụng trí tuệ nhân tạo (AI) để tự động trích xuất dữ liệu từ tài liệu số hóa (ví dụ: thông tin từ hóa đơn, hợp đồng, thanh toán, quyết định,...).",
+          "kind": [
+            "create",
+            "export",
+            "sync"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 2"
+    },
+    {
+      "id": "GĐ2-7",
+      "name": "Tích hợp hệ thống khác",
+      "section": "Giai đoạn 2 - Mở rộng nghiệp vụ",
+      "actor": "Theo phân quyền đơn vị",
+      "subActor": "",
+      "description": "Kết nối phần mềm số hóa t với các hệ thống hiện có của đơn vị (như hệ thống quản lý nhân sự, quản lý tài chính...) để luân chuyển dữ liệu liền mạch.",
+      "actions": [
+        {
+          "name": "Tích hợp hệ thống khác",
+          "actor": "Theo phân quyền đơn vị",
+          "description": "Kết nối phần mềm số hóa t với các hệ thống hiện có của đơn vị (như hệ thống quản lý nhân sự, quản lý tài chính...) để luân chuyển dữ liệu liền mạch.",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 2"
+    },
+    {
+      "id": "GĐ2-9",
+      "name": "Chữ ký số và ký điện tử",
+      "section": "Giai đoạn 2 - Mở rộng nghiệp vụ",
+      "actor": "Theo phân quyền đơn vị",
+      "subActor": "",
+      "description": "Tích hợp công nghệ ký số để phê duyệt tài liệu trực tuyến, giảm thiểu giấy tờ.",
+      "actions": [
+        {
+          "name": "Chữ ký số và ký điện tử",
+          "actor": "Theo phân quyền đơn vị",
+          "description": "Tích hợp công nghệ ký số để phê duyệt tài liệu trực tuyến, giảm thiểu giấy tờ.",
+          "kind": [
+            "approve"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 2"
+    },
+    {
+      "id": "GĐ2-10",
+      "name": "Báo cáo và phân tích",
+      "section": "Giai đoạn 2 - Mở rộng nghiệp vụ",
+      "actor": "Theo phân quyền đơn vị",
+      "subActor": "",
+      "description": "",
+      "actions": [
+        {
+          "name": "Báo cáo và phân tích",
+          "actor": "Theo phân quyền đơn vị",
+          "description": "",
+          "kind": [
+            "export"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 2"
+    },
+    {
+      "id": "GĐ2-11",
+      "name": "Phiên bản tài liệu",
+      "section": "Giai đoạn 2 - Mở rộng nghiệp vụ",
+      "actor": "Theo phân quyền đơn vị",
+      "subActor": "",
+      "description": "Quản lý các phiên bản khác nhau của cùng một tài liệu, giúp theo dõi lịch sử thay đổi",
+      "actions": [
+        {
+          "name": "Phiên bản tài liệu",
+          "actor": "Theo phân quyền đơn vị",
+          "description": "Quản lý các phiên bản khác nhau của cùng một tài liệu, giúp theo dõi lịch sử thay đổi",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 2"
+    },
+    {
+      "id": "GĐ2-12",
+      "name": "Giao diện và quy trình",
+      "section": "Giai đoạn 2 - Mở rộng nghiệp vụ",
+      "actor": "Theo phân quyền đơn vị",
+      "subActor": "",
+      "description": "Cho phép điều chỉnh giao diện hoặc sử dụng application (smartphone, tablet), cấu hình các quy trình theo đặc thù của đơn vị.",
+      "actions": [
+        {
+          "name": "Giao diện và quy trình",
+          "actor": "Theo phân quyền đơn vị",
+          "description": "Cho phép điều chỉnh giao diện hoặc sử dụng application (smartphone, tablet), cấu hình các quy trình theo đặc thù của đơn vị.",
+          "kind": [
+            "edit"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 2"
+    },
+    {
+      "id": "GĐ2-13",
+      "name": "Đối với lãnh đạo",
+      "section": "Giai đoạn 2 - Mở rộng nghiệp vụ",
+      "actor": "Theo phân quyền đơn vị",
+      "subActor": "",
+      "description": "Đối với lãnh đạo thì cho phép theo dõi và đánh giá hiệu suất làm việc của từng nhân viên trong phòng ban có thể xem được hết.",
+      "actions": [
+        {
+          "name": "Đối với lãnh đạo",
+          "actor": "Theo phân quyền đơn vị",
+          "description": "Đối với lãnh đạo thì cho phép theo dõi và đánh giá hiệu suất làm việc của từng nhân viên trong phòng ban có thể xem được hết.",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 2"
+    },
+    {
+      "id": "GĐ2-14",
+      "name": "Bảo mật thông tin",
+      "section": "Giai đoạn 2 - Mở rộng nghiệp vụ",
+      "actor": "Theo phân quyền đơn vị",
+      "subActor": "",
+      "description": "Phân cấp giúp hạn chế quyền truy cập, đảm bảo chỉ những người có thẩm quyền mới xem được các hồ sơ nhạy cảm của phòng ban mình, tránh rò rỉ thông tin.",
+      "actions": [
+        {
+          "name": "Bảo mật thông tin",
+          "actor": "Theo phân quyền đơn vị",
+          "description": "Phân cấp giúp hạn chế quyền truy cập, đảm bảo chỉ những người có thẩm quyền mới xem được các hồ sơ nhạy cảm của phòng ban mình, tránh rò rỉ thông tin.",
+          "kind": [
+            "view",
+            "export"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 2"
+    },
+    {
+      "id": "GĐ2-15",
+      "name": "Dữ liệu hệ thống",
+      "section": "Giai đoạn 2 - Mở rộng nghiệp vụ",
+      "actor": "Theo phân quyền đơn vị",
+      "subActor": "",
+      "description": "",
+      "actions": [
+        {
+          "name": "Dữ liệu hệ thống",
+          "actor": "Theo phân quyền đơn vị",
+          "description": "",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 2"
+    },
+    {
+      "id": "GĐ2-16",
+      "name": "Quản lý loại hồ sơ",
+      "section": "Giai đoạn 2 - Mở rộng nghiệp vụ",
+      "actor": "Theo phân quyền đơn vị",
+      "subActor": "",
+      "description": "Nếu bị trùng thì chỉ lấy cái chính lưu trữ và chia sẻ cho các đơn vị. Khi Ban 1 và Ban 2 cùng quản lý một loại hồ sơ hoặc sử dụng chung một kho, họ sẽ truy cập và quản lý dữ liệu trong cùng một hệ thống (để tránh tạo lập nhiều hồ sơ nhiều bản không đồng nhất). Các Ban cũng chỉ có chung một phần tài liệu là sử dụng chung",
+      "actions": [
+        {
+          "name": "Quản lý loại hồ sơ",
+          "actor": "Theo phân quyền đơn vị",
+          "description": "Nếu bị trùng thì chỉ lấy cái chính lưu trữ và chia sẻ cho các đơn vị. Khi Ban 1 và Ban 2 cùng quản lý một loại hồ sơ hoặc sử dụng chung một kho, họ sẽ truy cập và quản lý dữ liệu trong cùng một hệ thống (để tránh tạo lập nhiều hồ sơ nhiều bản không đồng nhất). Các Ban cũng chỉ có chung một phần tài liệu là sử dụng chung",
+          "kind": [
+            "create"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 2"
+    },
+    {
+      "id": "GĐ2-19",
+      "name": "Xác nhận thông tin",
+      "section": "Giai đoạn 2 - Mở rộng nghiệp vụ",
+      "actor": "Theo phân quyền đơn vị",
+      "subActor": "",
+      "description": "Hệ thống cũng cần có cơ chế để người dùng xác nhận tính chính xác của thông tin trên hồ sơ sau khi khai thác, đảm bảo dữ liệu luôn được cập nhật và đáng tin cậy.",
+      "actions": [
+        {
+          "name": "Xác nhận thông tin",
+          "actor": "Theo phân quyền đơn vị",
+          "description": "Hệ thống cũng cần có cơ chế để người dùng xác nhận tính chính xác của thông tin trên hồ sơ sau khi khai thác, đảm bảo dữ liệu luôn được cập nhật và đáng tin cậy.",
+          "kind": [
+            "edit",
+            "export"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 2"
+    },
+    {
+      "id": "GĐ2-20",
+      "name": "Có Kiểm duyệt, Yêu cầu bổ sung",
+      "section": "Giai đoạn 2 - Mở rộng nghiệp vụ",
+      "actor": "Theo phân quyền đơn vị",
+      "subActor": "",
+      "description": "Nếu hồ sơ chưa đầy đủ hoặc nội dung chưa đúng quy định, đơn vị có quyền hướng dẫn bằng văn bản yêu cầu tổ chức, cá nhân bổ sung hoặc hoàn chỉnh hồ sơ.",
+      "actions": [
+        {
+          "name": "Có Kiểm duyệt, Yêu cầu bổ sung",
+          "actor": "Theo phân quyền đơn vị",
+          "description": "Nếu hồ sơ chưa đầy đủ hoặc nội dung chưa đúng quy định, đơn vị có quyền hướng dẫn bằng văn bản yêu cầu tổ chức, cá nhân bổ sung hoặc hoàn chỉnh hồ sơ.",
+          "kind": [
+            "approve"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 2"
+    },
+    {
+      "id": "GĐ2-21",
+      "name": "Thông báo kết quả",
+      "section": "Giai đoạn 2 - Mở rộng nghiệp vụ",
+      "actor": "Theo phân quyền đơn vị",
+      "subActor": "",
+      "description": "Thông báo kết quả xử lý hồ sơ",
+      "actions": [
+        {
+          "name": "Thông báo kết quả",
+          "actor": "Theo phân quyền đơn vị",
+          "description": "Thông báo kết quả xử lý hồ sơ",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 2"
+    },
+    {
+      "id": "GĐ2-25",
+      "name": "Hệ thống quản lý hồ sơ",
+      "section": "Giai đoạn 2 - Mở rộng nghiệp vụ",
+      "actor": "Theo phân quyền đơn vị",
+      "subActor": "",
+      "description": "Lập danh mục chi tiết, Quy trình truy cập, yêu cầu bảo mật .",
+      "actions": [
+        {
+          "name": "Hệ thống quản lý hồ sơ",
+          "actor": "Theo phân quyền đơn vị",
+          "description": "Lập danh mục chi tiết, Quy trình truy cập, yêu cầu bảo mật .",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 2"
+    },
+    {
+      "id": "GĐ2-26",
+      "name": "Quy trình mượn, tra, khai thác hồ sơ",
+      "section": "Giai đoạn 2 - Mở rộng nghiệp vụ",
+      "actor": "Theo phân quyền đơn vị",
+      "subActor": "",
+      "description": "Phải nêu rõ, bản cứng, bản mềm, truy cập trực tuyến, sao chép, bản sao ... tùy theo tính chất của hồ sơ. (có thời hạn mượn của bản cứng,.. thuộc về quy định lưu trữ)",
+      "actions": [
+        {
+          "name": "Quy trình mượn, tra, khai thác hồ sơ",
+          "actor": "Theo phân quyền đơn vị",
+          "description": "Phải nêu rõ, bản cứng, bản mềm, truy cập trực tuyến, sao chép, bản sao ... tùy theo tính chất của hồ sơ. (có thời hạn mượn của bản cứng,.. thuộc về quy định lưu trữ)",
+          "kind": [
+            "view"
+          ]
+        }
+      ],
+      "phase": "Giai đoạn 2"
+    }
+  ]
+}

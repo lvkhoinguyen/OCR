@@ -1,0 +1,36 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IDP.DMS.Api", "IDP.DMS\IDP.DMS.Api\IDP.DMS.Api.csproj", "{0811A960-722E-45F7-AA6B-03B76A020C51}"
+EndProject
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "IDP.DMS.Client", "IDP.DMS\IDP.DMS.Client\IDP.DMS.Client.esproj", "{17B1AC48-37A8-39F0-7686-C1357CB4E3B7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0811A960-722E-45F7-AA6B-03B76A020C51}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0811A960-722E-45F7-AA6B-03B76A020C51}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0811A960-722E-45F7-AA6B-03B76A020C51}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0811A960-722E-45F7-AA6B-03B76A020C51}.Debug|x64.Build.0 = Debug|Any CPU
+		{0811A960-722E-45F7-AA6B-03B76A020C51}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0811A960-722E-45F7-AA6B-03B76A020C51}.Debug|x86.Build.0 = Debug|Any CPU
+		{0811A960-722E-45F7-AA6B-03B76A020C51}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0811A960-722E-45F7-AA6B-03B76A020C51}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0811A960-722E-45F7-AA6B-03B76A020C51}.Release|x64.ActiveCfg = Release|Any CPU
+		{0811A960-722E-45F7-AA6B-03B76A020C51}.Release|x64.Build.0 = Release|Any CPU
+		{0811A960-722E-45F7-AA6B-03B76A020C51}.Release|x86.ActiveCfg = Release|Any CPU
+		{0811A960-722E-45F7-AA6B-03B76A020C51}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

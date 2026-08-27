@@ -1,0 +1,773 @@
+[
+  {
+    "id": "TD-001",
+    "module": "Quản trị hệ thống",
+    "functionName": "Danh sách vai trò",
+    "resource": "roles",
+    "endpoint": "/api/dms/resources/roles",
+    "payload": {
+      "code": "TC-ROLES-001",
+      "name": "Danh sách vai trò - dữ liệu test 001",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Danh sách vai trò",
+      "extra1": "Quản trị hệ thống",
+      "extra2": "roles",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-002",
+    "module": "Quản trị hệ thống",
+    "functionName": "Hệ thống nhóm quyền",
+    "resource": "permission-groups",
+    "endpoint": "/api/dms/resources/permission-groups",
+    "payload": {
+      "code": "TC-PERMISSION_GROUPS-002",
+      "name": "Hệ thống nhóm quyền - dữ liệu test 002",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Hệ thống nhóm quyền",
+      "extra1": "Quản trị hệ thống",
+      "extra2": "permission-groups",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-003",
+    "module": "Quản trị hệ thống",
+    "functionName": "Danh sách báo cáo nhóm",
+    "resource": "report-groups",
+    "endpoint": "/api/dms/resources/report-groups",
+    "payload": {
+      "code": "TC-REPORT_GROUPS-003",
+      "name": "Danh sách báo cáo nhóm - dữ liệu test 003",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Danh sách báo cáo nhóm",
+      "extra1": "Quản trị hệ thống",
+      "extra2": "report-groups",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-004",
+    "module": "Quản trị hệ thống",
+    "functionName": "Quản lý nơi sử dụng",
+    "resource": "org-units",
+    "endpoint": "/api/dms/resources/org-units",
+    "payload": {
+      "code": "TC-ORG_UNITS-004",
+      "name": "Quản lý nơi sử dụng - dữ liệu test 004",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Quản lý nơi sử dụng",
+      "extra1": "Quản trị hệ thống",
+      "extra2": "org-units",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-005",
+    "module": "Quản trị hệ thống",
+    "functionName": "Định nghĩa danh mục",
+    "resource": "categories",
+    "endpoint": "/api/dms/resources/categories",
+    "payload": {
+      "code": "TC-CATEGORIES-005",
+      "name": "Định nghĩa danh mục - dữ liệu test 005",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Định nghĩa danh mục",
+      "extra1": "Quản trị hệ thống",
+      "extra2": "categories",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-006",
+    "module": "Quản trị hệ thống",
+    "functionName": "Danh mục đơn vị hành chính",
+    "resource": "admin-units",
+    "endpoint": "/api/dms/resources/admin-units",
+    "payload": {
+      "code": "TC-ADMIN_UNITS-006",
+      "name": "Danh mục đơn vị hành chính - dữ liệu test 006",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Danh mục đơn vị hành chính",
+      "extra1": "Quản trị hệ thống",
+      "extra2": "admin-units",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-007",
+    "module": "Quản trị hệ thống",
+    "functionName": "Danh mục dùng chung",
+    "resource": "categories",
+    "endpoint": "/api/dms/resources/categories",
+    "payload": {
+      "code": "TC-CATEGORIES-007",
+      "name": "Danh mục dùng chung - dữ liệu test 007",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Danh mục dùng chung",
+      "extra1": "Quản trị hệ thống",
+      "extra2": "categories",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-008",
+    "module": "Quản trị nơi sử dụng",
+    "functionName": "Hệ thống nhóm quyền",
+    "resource": "permission-groups",
+    "endpoint": "/api/dms/resources/permission-groups",
+    "payload": {
+      "code": "TC-PERMISSION_GROUPS-008",
+      "name": "Hệ thống nhóm quyền - dữ liệu test 008",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Hệ thống nhóm quyền",
+      "extra1": "Quản trị nơi sử dụng",
+      "extra2": "permission-groups",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-009",
+    "module": "Quản trị nơi sử dụng",
+    "functionName": "Quản lý cây đơn vị",
+    "resource": "org-units",
+    "endpoint": "/api/dms/resources/org-units",
+    "payload": {
+      "code": "TC-ORG_UNITS-009",
+      "name": "Quản lý cây đơn vị - dữ liệu test 009",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Quản lý cây đơn vị",
+      "extra1": "Quản trị nơi sử dụng",
+      "extra2": "org-units",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-010",
+    "module": "Quản trị nơi sử dụng",
+    "functionName": "Quản trị người dùng",
+    "resource": "users",
+    "endpoint": "/api/dms/resources/users",
+    "payload": {
+      "code": "TC-USERS-010",
+      "name": "Quản trị người dùng - dữ liệu test 010",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Quản trị người dùng",
+      "extra1": "Quản trị nơi sử dụng",
+      "extra2": "users",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-011",
+    "module": "Quản trị nơi sử dụng",
+    "functionName": "Danh sách nhóm báo cáo",
+    "resource": "report-groups",
+    "endpoint": "/api/dms/resources/report-groups",
+    "payload": {
+      "code": "TC-REPORT_GROUPS-011",
+      "name": "Danh sách nhóm báo cáo - dữ liệu test 011",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Danh sách nhóm báo cáo",
+      "extra1": "Quản trị nơi sử dụng",
+      "extra2": "report-groups",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-012",
+    "module": "Quản trị nơi sử dụng",
+    "functionName": "Cấu hình người dùng",
+    "resource": "user-groups",
+    "endpoint": "/api/dms/resources/user-groups",
+    "payload": {
+      "code": "TC-USER_GROUPS-012",
+      "name": "Cấu hình người dùng - dữ liệu test 012",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Cấu hình người dùng",
+      "extra1": "Quản trị nơi sử dụng",
+      "extra2": "user-groups",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-013",
+    "module": "Quản trị nơi sử dụng",
+    "functionName": "Cấu hình duyệt hồ sơ",
+    "resource": "approval-configs",
+    "endpoint": "/api/dms/resources/approval-configs",
+    "payload": {
+      "code": "TC-APPROVAL_CONFIGS-013",
+      "name": "Cấu hình duyệt hồ sơ - dữ liệu test 013",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Cấu hình duyệt hồ sơ",
+      "extra1": "Quản trị nơi sử dụng",
+      "extra2": "approval-configs",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-014",
+    "module": "Quản trị nơi sử dụng",
+    "functionName": "Định nghĩa danh mục riêng",
+    "resource": "private-categories",
+    "endpoint": "/api/dms/resources/private-categories",
+    "payload": {
+      "code": "TC-PRIVATE_CATEGORIES-014",
+      "name": "Định nghĩa danh mục riêng - dữ liệu test 014",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Định nghĩa danh mục riêng",
+      "extra1": "Quản trị nơi sử dụng",
+      "extra2": "private-categories",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-015",
+    "module": "Quản trị nơi sử dụng",
+    "functionName": "Cấu hình phòng ban",
+    "resource": "departments",
+    "endpoint": "/api/dms/resources/departments",
+    "payload": {
+      "code": "TC-DEPARTMENTS-015",
+      "name": "Cấu hình phòng ban - dữ liệu test 015",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Cấu hình phòng ban",
+      "extra1": "Quản trị nơi sử dụng",
+      "extra2": "departments",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-016",
+    "module": "Nhập liệu",
+    "functionName": "Nhập mới hồ sơ",
+    "resource": "dossiers",
+    "endpoint": "/api/dms/dossiers",
+    "payload": {
+      "code": "TC-DOSSIERS-016",
+      "title": "Nhập mới hồ sơ - dữ liệu test 016",
+      "dossierType": "HS_TEST",
+      "storageId": null,
+      "status": "DRAFT",
+      "fromDate": "2026-07-10",
+      "toDate": "2026-07-31",
+      "description": "Dữ liệu kiểm thử cho màn hình Nhập mới hồ sơ"
+    }
+  },
+  {
+    "id": "TD-017",
+    "module": "Nhập liệu",
+    "functionName": "Cập nhật hồ sơ",
+    "resource": "dossiers",
+    "endpoint": "/api/dms/dossiers",
+    "payload": {
+      "code": "TC-DOSSIERS-017",
+      "title": "Cập nhật hồ sơ - dữ liệu test 017",
+      "dossierType": "HS_TEST",
+      "storageId": null,
+      "status": "DRAFT",
+      "fromDate": "2026-07-10",
+      "toDate": "2026-07-31",
+      "description": "Dữ liệu kiểm thử cho màn hình Cập nhật hồ sơ"
+    }
+  },
+  {
+    "id": "TD-018",
+    "module": "Nhập liệu",
+    "functionName": "Import hồ sơ",
+    "resource": "import-jobs",
+    "endpoint": "/api/dms/resources/import-jobs",
+    "payload": {
+      "code": "TC-IMPORT_JOBS-018",
+      "name": "Import hồ sơ - dữ liệu test 018",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Import hồ sơ",
+      "extra1": "Nhập liệu",
+      "extra2": "import-jobs",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-019",
+    "module": "Nhập liệu",
+    "functionName": "Chuyển kho hồ sơ",
+    "resource": "storage-transfers",
+    "endpoint": "/api/dms/resources/storage-transfers",
+    "payload": {
+      "code": "TC-STORAGE_TRANSFERS-019",
+      "name": "Chuyển kho hồ sơ - dữ liệu test 019",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Chuyển kho hồ sơ",
+      "extra1": "Nhập liệu",
+      "extra2": "storage-transfers",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-020",
+    "module": "Nhập liệu",
+    "functionName": "Thanh lý hồ sơ",
+    "resource": "disposal-records",
+    "endpoint": "/api/dms/resources/disposal-records",
+    "payload": {
+      "code": "TC-DISPOSAL_RECORDS-020",
+      "name": "Thanh lý hồ sơ - dữ liệu test 020",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Thanh lý hồ sơ",
+      "extra1": "Nhập liệu",
+      "extra2": "disposal-records",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-021",
+    "module": "Nhập liệu",
+    "functionName": "Phân bổ hồ sơ",
+    "resource": "assignments",
+    "endpoint": "/api/dms/resources/assignments",
+    "payload": {
+      "code": "TC-ASSIGNMENTS-021",
+      "name": "Phân bổ hồ sơ - dữ liệu test 021",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Phân bổ hồ sơ",
+      "extra1": "Nhập liệu",
+      "extra2": "assignments",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-022",
+    "module": "Nhập liệu",
+    "functionName": "Nhập liệu hồ sơ phân bổ",
+    "resource": "assignments",
+    "endpoint": "/api/dms/resources/assignments",
+    "payload": {
+      "code": "TC-ASSIGNMENTS-022",
+      "name": "Nhập liệu hồ sơ phân bổ - dữ liệu test 022",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Nhập liệu hồ sơ phân bổ",
+      "extra1": "Nhập liệu",
+      "extra2": "assignments",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-023",
+    "module": "Tìm kiếm",
+    "functionName": "Tìm kiếm hồ sơ theo từ gợi nhớ",
+    "resource": "dossiers",
+    "endpoint": "/api/dms/dossiers",
+    "payload": {
+      "code": "TC-DOSSIERS-023",
+      "title": "Tìm kiếm hồ sơ theo từ gợi nhớ - dữ liệu test 023",
+      "dossierType": "HS_TEST",
+      "storageId": null,
+      "status": "DRAFT",
+      "fromDate": "2026-07-10",
+      "toDate": "2026-07-31",
+      "description": "Dữ liệu kiểm thử cho màn hình Tìm kiếm hồ sơ theo từ gợi nhớ"
+    }
+  },
+  {
+    "id": "TD-024",
+    "module": "Tìm kiếm",
+    "functionName": "Tìm kiếm hồ sơ theo điều kiện",
+    "resource": "dossiers",
+    "endpoint": "/api/dms/dossiers",
+    "payload": {
+      "code": "TC-DOSSIERS-024",
+      "title": "Tìm kiếm hồ sơ theo điều kiện - dữ liệu test 024",
+      "dossierType": "HS_TEST",
+      "storageId": null,
+      "status": "DRAFT",
+      "fromDate": "2026-07-10",
+      "toDate": "2026-07-31",
+      "description": "Dữ liệu kiểm thử cho màn hình Tìm kiếm hồ sơ theo điều kiện"
+    }
+  },
+  {
+    "id": "TD-025",
+    "module": "Kiểm duyệt",
+    "functionName": "Xác nhận hồ sơ xuất bản",
+    "resource": "publish-requests",
+    "endpoint": "/api/dms/resources/publish-requests",
+    "payload": {
+      "code": "TC-PUBLISH_REQUESTS-025",
+      "name": "Xác nhận hồ sơ xuất bản - dữ liệu test 025",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Xác nhận hồ sơ xuất bản",
+      "extra1": "Kiểm duyệt",
+      "extra2": "publish-requests",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-026",
+    "module": "Kiểm duyệt",
+    "functionName": "Hủy xác nhận xuất bản hồ sơ",
+    "resource": "publish-requests",
+    "endpoint": "/api/dms/resources/publish-requests",
+    "payload": {
+      "code": "TC-PUBLISH_REQUESTS-026",
+      "name": "Hủy xác nhận xuất bản hồ sơ - dữ liệu test 026",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Hủy xác nhận xuất bản hồ sơ",
+      "extra1": "Kiểm duyệt",
+      "extra2": "publish-requests",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-027",
+    "module": "Kiểm duyệt",
+    "functionName": "Nhận xét hồ sơ",
+    "resource": "approval-tickets",
+    "endpoint": "/api/dms/resources/approval-tickets",
+    "payload": {
+      "code": "TC-APPROVAL_TICKETS-027",
+      "name": "Nhận xét hồ sơ - dữ liệu test 027",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Nhận xét hồ sơ",
+      "extra1": "Kiểm duyệt",
+      "extra2": "approval-tickets",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-028",
+    "module": "Kiểm duyệt",
+    "functionName": "Hồ sơ không hợp lệ",
+    "resource": "invalid-records",
+    "endpoint": "/api/dms/resources/invalid-records",
+    "payload": {
+      "code": "TC-INVALID_RECORDS-028",
+      "name": "Hồ sơ không hợp lệ - dữ liệu test 028",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Hồ sơ không hợp lệ",
+      "extra1": "Kiểm duyệt",
+      "extra2": "invalid-records",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-029",
+    "module": "Khai thác",
+    "functionName": "Xem hồ sơ",
+    "resource": "dossiers",
+    "endpoint": "/api/dms/dossiers",
+    "payload": {
+      "code": "TC-DOSSIERS-029",
+      "title": "Xem hồ sơ - dữ liệu test 029",
+      "dossierType": "HS_TEST",
+      "storageId": null,
+      "status": "DRAFT",
+      "fromDate": "2026-07-10",
+      "toDate": "2026-07-31",
+      "description": "Dữ liệu kiểm thử cho màn hình Xem hồ sơ"
+    }
+  },
+  {
+    "id": "TD-030",
+    "module": "Khai thác",
+    "functionName": "Lịch sử mượn hồ sơ",
+    "resource": "borrow",
+    "endpoint": "/api/dms/borrow-requests",
+    "payload": {
+      "dossierId": 1,
+      "borrower": "Người mượn test 030",
+      "borrowFrom": "2026-07-10",
+      "borrowTo": "2026-07-31",
+      "status": "PENDING",
+      "approver": "Người duyệt test",
+      "note": "Dữ liệu kiểm thử cho màn hình Lịch sử mượn hồ sơ"
+    }
+  },
+  {
+    "id": "TD-031",
+    "module": "Danh mục",
+    "functionName": "Danh mục riêng",
+    "resource": "private-categories",
+    "endpoint": "/api/dms/resources/private-categories",
+    "payload": {
+      "code": "TC-PRIVATE_CATEGORIES-031",
+      "name": "Danh mục riêng - dữ liệu test 031",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Danh mục riêng",
+      "extra1": "Danh mục",
+      "extra2": "private-categories",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-032",
+    "module": "Danh mục",
+    "functionName": "Danh mục kho hồ sơ",
+    "resource": "storage",
+    "endpoint": "/api/dms/storage-locations",
+    "payload": {
+      "code": "TC-STORAGE-032",
+      "name": "Danh mục kho hồ sơ - dữ liệu test 032",
+      "locationType": "KHO",
+      "parentId": null,
+      "status": "ACTIVE",
+      "capacity": 100
+    }
+  },
+  {
+    "id": "TD-033",
+    "module": "Danh mục",
+    "functionName": "Danh mục kệ",
+    "resource": "storage",
+    "endpoint": "/api/dms/storage-locations",
+    "payload": {
+      "code": "TC-STORAGE-033",
+      "name": "Danh mục kệ - dữ liệu test 033",
+      "locationType": "KHO",
+      "parentId": null,
+      "status": "ACTIVE",
+      "capacity": 100
+    }
+  },
+  {
+    "id": "TD-034",
+    "module": "Danh mục",
+    "functionName": "Danh mục tầng",
+    "resource": "storage",
+    "endpoint": "/api/dms/storage-locations",
+    "payload": {
+      "code": "TC-STORAGE-034",
+      "name": "Danh mục tầng - dữ liệu test 034",
+      "locationType": "KHO",
+      "parentId": null,
+      "status": "ACTIVE",
+      "capacity": 100
+    }
+  },
+  {
+    "id": "TD-035",
+    "module": "Danh mục",
+    "functionName": "Danh mục hộp",
+    "resource": "storage",
+    "endpoint": "/api/dms/storage-locations",
+    "payload": {
+      "code": "TC-STORAGE-035",
+      "name": "Danh mục hộp - dữ liệu test 035",
+      "locationType": "KHO",
+      "parentId": null,
+      "status": "ACTIVE",
+      "capacity": 100
+    }
+  },
+  {
+    "id": "TD-036",
+    "module": "Danh mục",
+    "functionName": "Danh mục loại hồ sơ",
+    "resource": "dossier-types",
+    "endpoint": "/api/dms/resources/dossier-types",
+    "payload": {
+      "code": "TC-DOSSIER_TYPES-036",
+      "name": "Danh mục loại hồ sơ - dữ liệu test 036",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Danh mục loại hồ sơ",
+      "extra1": "Danh mục",
+      "extra2": "dossier-types",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-037",
+    "module": "Danh mục",
+    "functionName": "Danh mục phông lưu trữ",
+    "resource": "fonts",
+    "endpoint": "/api/dms/resources/fonts",
+    "payload": {
+      "code": "TC-FONTS-037",
+      "name": "Danh mục phông lưu trữ - dữ liệu test 037",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Danh mục phông lưu trữ",
+      "extra1": "Danh mục",
+      "extra2": "fonts",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-038",
+    "module": "Danh mục",
+    "functionName": "Danh mục loại văn bản",
+    "resource": "document-types",
+    "endpoint": "/api/dms/resources/document-types",
+    "payload": {
+      "code": "TC-DOCUMENT_TYPES-038",
+      "name": "Danh mục loại văn bản - dữ liệu test 038",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Danh mục loại văn bản",
+      "extra1": "Danh mục",
+      "extra2": "document-types",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-039",
+    "module": "Danh mục",
+    "functionName": "Danh mục mục lục",
+    "resource": "catalog-indexes",
+    "endpoint": "/api/dms/resources/catalog-indexes",
+    "payload": {
+      "code": "TC-CATALOG_INDEXES-039",
+      "name": "Danh mục mục lục - dữ liệu test 039",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Danh mục mục lục",
+      "extra1": "Danh mục",
+      "extra2": "catalog-indexes",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-040",
+    "module": "Báo cáo",
+    "functionName": "Khai báo cáo",
+    "resource": "reports",
+    "endpoint": "/api/dms/resources/reports",
+    "payload": {
+      "code": "TC-REPORTS-040",
+      "name": "Khai báo cáo - dữ liệu test 040",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Khai báo cáo",
+      "extra1": "Báo cáo",
+      "extra2": "reports",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-041",
+    "module": "Báo cáo",
+    "functionName": "Xuất báo cáo",
+    "resource": "reports",
+    "endpoint": "/api/dms/resources/reports",
+    "payload": {
+      "code": "TC-REPORTS-041",
+      "name": "Xuất báo cáo - dữ liệu test 041",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Xuất báo cáo",
+      "extra1": "Báo cáo",
+      "extra2": "reports",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-042",
+    "module": "Duyệt phiếu",
+    "functionName": "Duyệt phiếu mượn",
+    "resource": "borrow",
+    "endpoint": "/api/dms/borrow-requests",
+    "payload": {
+      "dossierId": 1,
+      "borrower": "Người mượn test 042",
+      "borrowFrom": "2026-07-10",
+      "borrowTo": "2026-07-31",
+      "status": "PENDING",
+      "approver": "Người duyệt test",
+      "note": "Dữ liệu kiểm thử cho màn hình Duyệt phiếu mượn"
+    }
+  },
+  {
+    "id": "TD-043",
+    "module": "Duyệt phiếu",
+    "functionName": "Chuyển giao hồ sơ",
+    "resource": "transfer-tickets",
+    "endpoint": "/api/dms/resources/transfer-tickets",
+    "payload": {
+      "code": "TC-TRANSFER_TICKETS-043",
+      "name": "Chuyển giao hồ sơ - dữ liệu test 043",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Chuyển giao hồ sơ",
+      "extra1": "Duyệt phiếu",
+      "extra2": "transfer-tickets",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  },
+  {
+    "id": "TD-044",
+    "module": "Duyệt phiếu",
+    "functionName": "Thu hồi hồ sơ",
+    "resource": "recall-tickets",
+    "endpoint": "/api/dms/resources/recall-tickets",
+    "payload": {
+      "code": "TC-RECALL_TICKETS-044",
+      "name": "Thu hồi hồ sơ - dữ liệu test 044",
+      "parentId": null,
+      "status": "ACTIVE",
+      "description": "Dữ liệu kiểm thử cho màn hình Thu hồi hồ sơ",
+      "extra1": "Duyệt phiếu",
+      "extra2": "recall-tickets",
+      "date1": "2026-07-10",
+      "date2": "2026-07-31"
+    }
+  }
+]

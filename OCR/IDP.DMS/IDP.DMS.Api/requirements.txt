@@ -1,0 +1,16 @@
+# OCR Engine dependencies for IDP.DMS
+easyocr
+opencv-python-headless
+tensorflow
+scikit-learn
+matplotlib
+editdistance
+vietocr
+PyYAML
+torch
+torchvision
+numpy
+Pillow
+pytesseract
+PyMuPDF
+reportlab

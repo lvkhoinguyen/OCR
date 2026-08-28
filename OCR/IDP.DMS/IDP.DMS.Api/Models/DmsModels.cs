@@ -1,4 +1,4 @@
-﻿namespace IDP.DMS.Api.Models;
+namespace IDP.DMS.Api.Models;
 
 public sealed record StorageLocationDto(
     long Id,
@@ -126,3 +126,81 @@ public sealed record SimpleRecordRequest(
     string? Extra2,
     DateTime? Date1,
     DateTime? Date2);
+
+// ─── Digitize from Image → PDF + Review Workflow ─────────────────────────────
+
+/// <summary>Metadata có cấu trúc bóc tách từ ảnh tài liệu.</summary>
+public sealed record DigitizeMetadata(
+    string? DocumentNumber,
+    string? IssueDate,
+    string? IssuingAuthority,
+    string? Subject,
+    string? Signer)
+{
+    public static DigitizeMetadata Empty =>
+        new(null, null, null, null, null);
+}
+
+/// <summary>Request tải ảnh lên và số hóa tự động.</summary>
+public sealed class UploadAndDigitizeRequest
+{
+    public long StorageId { get; set; }
+    public IFormFile? File { get; set; }
+}
+
+/// <summary>Kết quả trả về sau khi upload ảnh & bóc tách OCR thành công.</summary>
+public sealed record UploadAndDigitizeResult(
+    long DocumentId,
+    long DossierId,
+    string DocumentCode,
+    string DossierCode,
+    string OcrStatus,
+    string Status,
+    string OriginalFileName,
+    string DigitizedPdfFileName,
+    DigitizeMetadata Metadata,
+    string FullText,
+    string Engine,
+    string Message);
+
+/// <summary>Cập nhật nội dung metadata + toàn văn sau khi người kiểm duyệt chỉnh sửa.</summary>
+public sealed record ReviewContentUpdateRequest(
+    string? DocumentNumber,
+    string? IssueDate,
+    string? IssuingAuthority,
+    string? Subject,
+    string? Signer,
+    string FullText,
+    string Actor,
+    string? Note);
+
+/// <summary>Phê duyệt tài liệu và nhập kho chính thức.</summary>
+public sealed record ApproveDocumentRequest(
+    string Actor,
+    string? Note);
+
+/// <summary>Từ chối hoặc yêu cầu bổ sung.</summary>
+public sealed record RejectDocumentRequest(
+    string Actor,
+    string Reason,
+    bool NeedsSupplement = false);
+
+/// <summary>DocumentDto mở rộng gồm metadata bóc tách và tên file ảnh gốc.</summary>
+public sealed record DocumentDetailDto(
+    long Id,
+    long DossierId,
+    string Code,
+    string Title,
+    string? FileName,
+    string? OriginalFileName,
+    string? OcrStatus,
+    string? Status,
+    string? FullText,
+    DigitizeMetadata? Metadata,
+    DateTime? CreatedAt,
+    DateTime? UpdatedAt);
+
+public sealed record DigitizeMetadataResult(
+    DigitizeMetadata Metadata,
+    string FullText,
+    string Engine);

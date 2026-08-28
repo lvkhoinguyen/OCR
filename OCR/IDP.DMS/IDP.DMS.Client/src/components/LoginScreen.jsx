@@ -1,30 +1,84 @@
 import { useState } from "react";
-import { LockKeyhole, LogIn, UserRound } from "lucide-react";
+import { LockKeyhole, LogIn, UserRound, UserPlus, Mail, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { uiApi } from "../services/uiApi";
 
 export default function LoginScreen({ onLogin }) {
+  const [mode, setMode] = useState("login"); // 'login' | 'register'
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function submit(event) {
+  // Xử lý đăng nhập
+  async function submitLogin(event) {
     event.preventDefault();
     setError("");
+    setSuccessMsg("");
     setLoading(true);
     try {
       const session = await uiApi.auth.login(username.trim(), password);
       onLogin(session);
     } catch (requestError) {
-      setError(requestError.message || "Không thể đăng nhập.");
+      setError(requestError.message || "Không thể đăng nhập. Vui lòng kiểm tra lại thông tin.");
     } finally {
       setLoading(false);
     }
   }
 
+  // Xử lý đăng ký tài khoản mới
+  async function submitRegister(event) {
+    event.preventDefault();
+    setError("");
+    setSuccessMsg("");
+
+    if (password !== confirmPassword) {
+      setError("Mật khẩu xác nhận không khớp.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Mật khẩu phải có ít nhất 8 ký tự, gồm cả chữ và số.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await uiApi.auth.register({
+        username: username.trim(),
+        password,
+        fullName: fullName.trim(),
+        email: email.trim() || undefined
+      });
+      setSuccessMsg("Đăng ký tài khoản thành công! Đang tự động đăng nhập...");
+      // Tự động đăng nhập luôn sau khi đăng ký
+      setTimeout(async () => {
+        try {
+          const session = await uiApi.auth.login(username.trim(), password);
+          onLogin(session);
+        } catch {
+          setMode("login");
+          setSuccessMsg("Tài khoản đã tạo thành công. Vui lòng nhập mật khẩu để đăng nhập.");
+        }
+      }, 1000);
+    } catch (requestError) {
+      setError(requestError.message || "Đăng ký thất bại. Tên đăng nhập có thể đã tồn tại.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const fillDefaultAdmin = () => {
+    setUsername("admin");
+    setPassword("Admin@123456");
+    setError("");
+  };
+
   return (
     <main className="login-page">
-      <section className="login-card" aria-labelledby="login-title">
+      <section className="login-card" aria-labelledby="login-title" style={{ maxWidth: 440 }}>
         <div className="login-brand">
           <div className="login-brand-mark">IDP</div>
           <div>
@@ -33,39 +87,243 @@ export default function LoginScreen({ onLogin }) {
           </div>
         </div>
 
-        <div className="login-heading">
-          <h1 id="login-title">Đăng nhập hệ thống</h1>
-          <p>Sử dụng tài khoản được cấp để truy cập và xử lý hồ sơ.</p>
+        {/* Tab chuyển đổi Đăng nhập / Đăng ký */}
+        <div style={{
+          display: "flex",
+          background: "#f1f5f9",
+          borderRadius: 8,
+          padding: 4,
+          marginBottom: 16,
+          marginTop: 8
+        }}>
+          <button
+            type="button"
+            onClick={() => { setMode("login"); setError(""); setSuccessMsg(""); }}
+            style={{
+              flex: 1,
+              padding: "8px 12px",
+              borderRadius: 6,
+              border: "none",
+              cursor: "pointer",
+              fontWeight: 600,
+              fontSize: 13,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              background: mode === "login" ? "#ffffff" : "transparent",
+              color: mode === "login" ? "#0f3d73" : "#64748b",
+              boxShadow: mode === "login" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+              transition: "all 0.2s"
+            }}
+          >
+            <LogIn size={15} /> Đăng nhập
+          </button>
+          <button
+            type="button"
+            onClick={() => { setMode("register"); setError(""); setSuccessMsg(""); }}
+            style={{
+              flex: 1,
+              padding: "8px 12px",
+              borderRadius: 6,
+              border: "none",
+              cursor: "pointer",
+              fontWeight: 600,
+              fontSize: 13,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              background: mode === "register" ? "#ffffff" : "transparent",
+              color: mode === "register" ? "#0f3d73" : "#64748b",
+              boxShadow: mode === "register" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+              transition: "all 0.2s"
+            }}
+          >
+            <UserPlus size={15} /> Tạo tài khoản mới
+          </button>
         </div>
 
-        <form className="login-form" onSubmit={submit}>
-          <label>
-            <span>Tên đăng nhập</span>
-            <div className="login-input-wrap">
-              <UserRound size={18} aria-hidden="true" />
-              <input value={username} onChange={(event) => setUsername(event.target.value)}
-                autoComplete="username" autoFocus required placeholder="Nhập tên đăng nhập" />
+        {mode === "login" ? (
+          <>
+            <div className="login-heading" style={{ marginBottom: 12 }}>
+              <h1 id="login-title" style={{ fontSize: 20 }}>Đăng nhập hệ thống</h1>
+              <p style={{ fontSize: 13 }}>Sử dụng tài khoản quản trị hoặc tài khoản được cấp.</p>
             </div>
-          </label>
 
-          <label>
-            <span>Mật khẩu</span>
-            <div className="login-input-wrap">
-              <LockKeyhole size={18} aria-hidden="true" />
-              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)}
-                autoComplete="current-password" required placeholder="Nhập mật khẩu" />
+            {/* Box gợi ý tài khoản mặc định */}
+            <div style={{
+              background: "#f0fdf4",
+              border: "1px solid #bbf7d0",
+              borderRadius: 8,
+              padding: "10px 14px",
+              marginBottom: 16,
+              fontSize: 12
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <span style={{ fontWeight: 700, color: "#166534", display: "flex", alignItems: "center", gap: 4 }}>
+                  <ShieldCheck size={15} /> Tài khoản mặc định hệ thống:
+                </span>
+                <button
+                  type="button"
+                  onClick={fillDefaultAdmin}
+                  style={{
+                    background: "#16a34a",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: 4,
+                    padding: "3px 8px",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer"
+                  }}
+                >
+                  Điền nhanh
+                </button>
+              </div>
+              <div style={{ color: "#374151", lineHeight: 1.5 }}>
+                Tài khoản: <strong style={{ color: "#0f3d73" }}>admin</strong> • Mật khẩu: <strong style={{ color: "#0f3d73" }}>Admin@123456</strong>
+              </div>
             </div>
-          </label>
 
-          {error && <div className="login-error" role="alert">{error}</div>}
+            <form className="login-form" onSubmit={submitLogin}>
+              <label>
+                <span>Tên đăng nhập</span>
+                <div className="login-input-wrap">
+                  <UserRound size={18} aria-hidden="true" />
+                  <input
+                    value={username}
+                    onChange={(event) => setUsername(event.target.value)}
+                    autoComplete="username"
+                    autoFocus
+                    required
+                    placeholder="VD: admin"
+                  />
+                </div>
+              </label>
 
-          <button className="login-submit" type="submit" disabled={loading}>
-            <LogIn size={18} />
-            {loading ? "Đang đăng nhập..." : "Đăng nhập"}
-          </button>
-        </form>
+              <label>
+                <span>Mật khẩu</span>
+                <div className="login-input-wrap">
+                  <LockKeyhole size={18} aria-hidden="true" />
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    autoComplete="current-password"
+                    required
+                    placeholder="Nhập mật khẩu"
+                  />
+                </div>
+              </label>
 
-        <p className="login-footnote">Phiên đăng nhập được bảo vệ bằng JWT và tự động hết hạn.</p>
+              {error && <div className="login-error" role="alert">{error}</div>}
+              {successMsg && (
+                <div style={{ padding: "8px 12px", background: "#f0fdf4", color: "#166534", borderRadius: 6, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                  <CheckCircle2 size={16} /> {successMsg}
+                </div>
+              )}
+
+              <button className="login-submit" type="submit" disabled={loading}>
+                <LogIn size={18} />
+                {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+              </button>
+            </form>
+          </>
+        ) : (
+          <>
+            <div className="login-heading" style={{ marginBottom: 12 }}>
+              <h1 id="login-title" style={{ fontSize: 20 }}>Đăng ký tài khoản</h1>
+              <p style={{ fontSize: 13 }}>Tài khoản đầu tiên khởi tạo sẽ nhận vai trò Quản trị viên cao nhất.</p>
+            </div>
+
+            <form className="login-form" onSubmit={submitRegister}>
+              <label>
+                <span>Tên đăng nhập <small>(chữ không dấu, số, dấu chấm/gạch)</small></span>
+                <div className="login-input-wrap">
+                  <UserRound size={18} aria-hidden="true" />
+                  <input
+                    value={username}
+                    onChange={(event) => setUsername(event.target.value.toLowerCase())}
+                    autoComplete="username"
+                    required
+                    placeholder="VD: nguyenvanan"
+                  />
+                </div>
+              </label>
+
+              <label>
+                <span>Họ và tên</span>
+                <div className="login-input-wrap">
+                  <UserRound size={18} aria-hidden="true" />
+                  <input
+                    value={fullName}
+                    onChange={(event) => setFullName(event.target.value)}
+                    required
+                    placeholder="VD: Nguyễn Văn An"
+                  />
+                </div>
+              </label>
+
+              <label>
+                <span>Email liên hệ (tùy chọn)</span>
+                <div className="login-input-wrap">
+                  <Mail size={18} aria-hidden="true" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="VD: an.nv@idp.vn"
+                  />
+                </div>
+              </label>
+
+              <label>
+                <span>Mật khẩu <small>(tối thiểu 8 ký tự, gồm cả chữ và số)</small></span>
+                <div className="login-input-wrap">
+                  <LockKeyhole size={18} aria-hidden="true" />
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    required
+                    placeholder="Nhập mật khẩu"
+                  />
+                </div>
+              </label>
+
+              <label>
+                <span>Nhập lại mật khẩu</span>
+                <div className="login-input-wrap">
+                  <LockKeyhole size={18} aria-hidden="true" />
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    required
+                    placeholder="Nhập lại mật khẩu để xác nhận"
+                  />
+                </div>
+              </label>
+
+              {error && <div className="login-error" role="alert">{error}</div>}
+              {successMsg && (
+                <div style={{ padding: "8px 12px", background: "#f0fdf4", color: "#166534", borderRadius: 6, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                  <CheckCircle2 size={16} /> {successMsg}
+                </div>
+              )}
+
+              <button className="login-submit" type="submit" disabled={loading} style={{ background: "#0284c7" }}>
+                <UserPlus size={18} />
+                {loading ? "Đang khởi tạo tài khoản..." : "Hoàn tất đăng ký"}
+              </button>
+            </form>
+          </>
+        )}
+
+        <p className="login-footnote" style={{ marginTop: 16 }}>
+          Phiên đăng nhập được bảo vệ bằng JWT và tự động hết hạn.
+        </p>
       </section>
     </main>
   );

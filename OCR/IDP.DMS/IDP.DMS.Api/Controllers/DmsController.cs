@@ -556,12 +556,18 @@ namespace IDP.DMS.Api.Controllers
         }
 
         [HttpGet("documents/{id:long}/file")]
-        public async Task<IActionResult> GetDocumentFile(long id)
+        public async Task<IActionResult> GetDocumentFile(long id, [FromQuery] string? type = null)
         {
-            var document = await _dmsService.GetDocumentAsync(id);
-            if (document?.FileName is null) return NotFound();
+            var detail = await _dmsService.GetDocumentDetailAsync(id);
+            if (detail is null) return NotFound();
 
-            var storedFileName = Path.GetFileName(document.FileName);
+            var fileName = string.Equals(type, "original", StringComparison.OrdinalIgnoreCase)
+                ? (detail.OriginalFileName ?? detail.FileName)
+                : detail.FileName;
+
+            if (string.IsNullOrWhiteSpace(fileName)) return NotFound();
+
+            var storedFileName = Path.GetFileName(fileName);
             if (string.IsNullOrWhiteSpace(storedFileName)) return NotFound();
             var filePath = Path.Combine(_env.ContentRootPath, "uploads", storedFileName);
             if (!System.IO.File.Exists(filePath)) return NotFound();
@@ -583,6 +589,9 @@ namespace IDP.DMS.Api.Controllers
             var watermarkText = $"IDP.DMS | current-user | DOCUMENT #{id} | {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
             Response.Headers["X-IDP-DMS-Watermark"] = Uri.EscapeDataString(watermarkText);
             Response.Headers["X-IDP-DMS-Security-Level"] = "INTERNAL";
+            Response.Headers["X-IDP-DMS-FileType"] = type ?? "digitized";
+            if (!string.IsNullOrWhiteSpace(detail.OriginalFileName))
+                Response.Headers["X-IDP-DMS-OriginalFile"] = Uri.EscapeDataString(detail.OriginalFileName);
 
             return PhysicalFile(filePath, contentType, enableRangeProcessing: true);
         }
@@ -867,6 +876,152 @@ namespace IDP.DMS.Api.Controllers
             string text,
             bool usedFallback,
             OcrWorkflowSubmissionResult? workflow);
+
+        #endregion
+
+        #region Digitize & Review Workflow
+
+        /// <summary>Tải ảnh lên, OCR Gemini bóc tách có cấu trúc, sinh PDF số hóa, đưa vào hàng đợi duyệt.</summary>
+        [HttpPost("documents/upload-and-digitize")]
+        [RequestSizeLimit(30L * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 30L * 1024 * 1024)]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UploadAndDigitize([FromForm] UploadAndDigitizeRequest request)
+        {
+            if (request.StorageId <= 0)
+                return BadRequest("Vui lòng chọn kho lưu trữ hợp lệ.");
+            if (request.File is null || request.File.Length == 0)
+                return BadRequest("Vui lòng chọn file ảnh để tải lên.");
+            var ext = Path.GetExtension(request.File.FileName).ToLowerInvariant();
+            if (ext is not (".png" or ".jpg" or ".jpeg"))
+                return BadRequest("Chỉ hỗ trợ định dạng ảnh PNG, JPG hoặc JPEG.");
+            if (request.File.Length > 25L * 1024 * 1024)
+                return BadRequest("Kích thước ảnh vượt giới hạn 25 MB.");
+
+            var storage = await _dmsService.GetStorageLocationAsync(request.StorageId);
+            if (storage is null || !string.Equals(storage.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+                return BadRequest("Kho lưu trữ đã chọn không tồn tại hoặc chưa được kích hoạt.");
+
+            var uploadsFolder = Path.Combine(_env.ContentRootPath, "uploads");
+            Directory.CreateDirectory(uploadsFolder);
+
+            var ts = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
+            var suffix = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            var docTitle = Path.GetFileNameWithoutExtension(request.File.FileName);
+
+            var origFileName = $"orig_{ts}_{suffix}{ext}";
+            var origPath = Path.Combine(uploadsFolder, origFileName);
+            await using (var fs = new FileStream(origPath, FileMode.Create))
+                await request.File.CopyToAsync(fs);
+
+            QuickUploadRecordsResult records;
+            try
+            {
+                records = await _dmsService.CreateQuickUploadRecordsAsync(
+                    new DossierRequest($"SHK-{ts}-{suffix}", $"Hồ sơ số hóa - {docTitle}", "DOCUMENT",
+                        request.StorageId, "PENDING", null, null, "Tạo từ luồng số hóa ảnh"),
+                    $"SHVB-{ts}-{suffix}", docTitle, origFileName, "PENDING", "PROCESSING");
+            }
+            catch (Exception ex)
+            {
+                try { System.IO.File.Delete(origPath); } catch { }
+                return Problem($"Lỗi tạo bản ghi tài liệu: {ex.Message}");
+            }
+
+            DigitizeMetadataResult extraction;
+            try { extraction = await _ocrService.ExtractStructuredMetadataAsync(origPath); }
+            catch (Exception ex)
+            {
+                var e = $"Lỗi Gemini OCR: {ex.Message}";
+                await _dmsService.UpdateDocumentOcrAsync(records.DocumentId, "ERROR", e.Length > 3900 ? e[..3900] : e);
+                return Created($"/api/dms/documents/{records.DocumentId}", new
+                {
+                    message = "Đã lưu ảnh nhưng OCR thất bại.", records.DocumentId, records.DossierId,
+                    ocrStatus = "ERROR", status = "PENDING", originalFileName = origFileName, error = ex.Message
+                });
+            }
+
+            var pdfName = $"{records.DocumentId}_digitized_{ts}.pdf";
+            try
+            {
+                _ocrService.GenerateDigitizedPdfWithMeta(
+                    new OcrPdfGenerationRequest(Path.Combine(uploadsFolder, pdfName),
+                        extraction.FullText, records.DocumentCode, docTitle, request.File.FileName, "gemini"),
+                    extraction.Metadata);
+            }
+            catch (Exception ex)
+            {
+                await _dmsService.UpdateDocumentOcrAsync(records.DocumentId, "ERROR", $"PDF error: {ex.Message}"[..Math.Min(ex.Message.Length + 12, 3900)]);
+                return Problem($"OCR OK nhưng không tạo được PDF: {ex.Message}");
+            }
+
+            var encoded = OracleDmsService.EncodeDescription(extraction.Metadata, origFileName, extraction.FullText);
+            await _dmsService.UpdateDocumentFileOcrAsync(records.DocumentId, pdfName, "DONE",
+                encoded.Length > 3900 ? encoded[..3895] + "…" : encoded);
+            try { await _dmsService.SubmitOcrForReviewAsync(records.DocumentId, GetActorName(), "DEFAULT"); }
+            catch (Exception) { /* submit review is non-fatal */ }
+
+            return Created($"/api/dms/documents/{records.DocumentId}", new UploadAndDigitizeResult(
+                records.DocumentId, records.DossierId, records.DocumentCode, records.DossierCode,
+                "DONE", "PENDING", origFileName, pdfName, extraction.Metadata, extraction.FullText, "gemini",
+                $"Đã số hóa '{docTitle}' thành công. PDF chờ kiểm duyệt."));
+        }
+
+        /// <summary>Danh sách tài liệu đang chờ kiểm duyệt.</summary>
+        [HttpGet("documents/pending-review")]
+        public async Task<IActionResult> GetPendingReviewDocuments()
+            => Ok(await _dmsService.GetPendingDigitizeDocumentsAsync());
+
+        /// <summary>Chi tiết tài liệu gồm metadata + toàn văn OCR.</summary>
+        [HttpGet("documents/{id:long}/detail")]
+        public async Task<IActionResult> GetDocumentDetail(long id)
+        {
+            var detail = await _dmsService.GetDocumentDetailAsync(id);
+            return detail is null ? NotFound() : Ok(detail);
+        }
+
+        /// <summary>Người kiểm duyệt cập nhật metadata và toàn văn.</summary>
+        [HttpPut("documents/{id:long}/review-content")]
+        public async Task<IActionResult> UpdateReviewContent(long id, [FromBody] ReviewContentUpdateRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.FullText)) return BadRequest("Toàn văn không được trống.");
+            try { return Ok(await _dmsService.UpdateDigitizeMetadataAndTextAsync(id, request)); }
+            catch (BusinessRuleException ex) { return BadRequest(ex.Message); }
+        }
+
+        /// <summary>Phê duyệt và nhập kho chính thức.</summary>
+        [HttpPost("documents/{id:long}/approve")]
+        public async Task<IActionResult> ApproveDocument(long id, [FromBody] ApproveDocumentRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Actor)) return BadRequest("Actor là bắt buộc.");
+            try
+            {
+                var uploadsFolder = Path.Combine(_env.ContentRootPath, "uploads");
+                var result = await _dmsService.ApproveAndStoreDocumentAsync(id, request, uploadsFolder,
+                    (pdfPath, meta) =>
+                    {
+                        var d = _dmsService.GetDocumentDetailAsync(id).GetAwaiter().GetResult();
+                        _ocrService.GenerateDigitizedPdfWithMeta(
+                            new OcrPdfGenerationRequest(pdfPath, d?.FullText ?? string.Empty,
+                                d?.Code, d?.Title, d?.OriginalFileName ?? d?.FileName, "gemini"), meta);
+                    });
+                return Ok(new { message = $"Tài liệu #{id} đã được phê duyệt và nhập kho.", documentId = result.Id, status = result.Status, fileName = result.FileName });
+            }
+            catch (BusinessRuleException ex) { return BadRequest(ex.Message); }
+        }
+
+        /// <summary>Từ chối hoặc yêu cầu bổ sung.</summary>
+        [HttpPost("documents/{id:long}/reject")]
+        public async Task<IActionResult> RejectDocument(long id, [FromBody] RejectDocumentRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Reason)) return BadRequest("Lý do là bắt buộc.");
+            try
+            {
+                var result = await _dmsService.RejectDocumentAsync(id, request);
+                return Ok(new { message = request.NeedsSupplement ? $"Tài liệu #{id} yêu cầu bổ sung." : $"Tài liệu #{id} đã bị từ chối.", documentId = result.Id, status = result.Status });
+            }
+            catch (BusinessRuleException ex) { return BadRequest(ex.Message); }
+        }
 
         #endregion
 

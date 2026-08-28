@@ -756,6 +756,276 @@ public sealed class OracleDmsService
             P("description", description),
             P("id", id));
 
+    // ─── Digitize → Review → Approve workflow ────────────────────────────────
+
+    private const string MetaJsonOpen  = "[METADATA_JSON]";
+    private const string MetaJsonClose = "[/METADATA_JSON]";
+    private const string OrigFileTag   = "[ORIG_FILE]";
+    private const string OrigFileClose = "[/ORIG_FILE]";
+
+    /// <summary>Encode metadata + originalFileName + fullText thành chuỗi lưu vào DESCRIPTION.</summary>
+    public static string EncodeDescription(DigitizeMetadata meta, string? origFile, string fullText)
+    {
+        var metaJson = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            documentNumber   = meta.DocumentNumber,
+            issueDate        = meta.IssueDate,
+            issuingAuthority = meta.IssuingAuthority,
+            subject          = meta.Subject,
+            signer           = meta.Signer
+        });
+        var origBlock = string.IsNullOrWhiteSpace(origFile)
+            ? string.Empty
+            : $"\n{OrigFileTag}{origFile}{OrigFileClose}";
+        return $"{MetaJsonOpen}\n{metaJson}\n{MetaJsonClose}{origBlock}\n\n{fullText}";
+    }
+
+    /// <summary>Decode DESCRIPTION thành metadata + originalFileName + fullText.</summary>
+    public static (DigitizeMetadata Metadata, string? OrigFile, string FullText) DecodeDescription(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return (DigitizeMetadata.Empty, null, raw ?? string.Empty);
+
+        var metadata = DigitizeMetadata.Empty;
+        string? origFile = null;
+        var fullText = raw;
+
+        var openIdx  = raw.IndexOf(MetaJsonOpen,  StringComparison.Ordinal);
+        var closeIdx = raw.IndexOf(MetaJsonClose, StringComparison.Ordinal);
+        if (openIdx >= 0 && closeIdx > openIdx)
+        {
+            var jsonSlice = raw[(openIdx + MetaJsonOpen.Length)..closeIdx].Trim();
+            fullText = raw[(closeIdx + MetaJsonClose.Length)..].Trim();
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(jsonSlice);
+                var r = doc.RootElement;
+                string? Get(string p) => r.TryGetProperty(p, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.String
+                    ? (string.IsNullOrWhiteSpace(v.GetString()) ? null : v.GetString()!.Trim()) : null;
+                metadata = new DigitizeMetadata(Get("documentNumber"), Get("issueDate"), Get("issuingAuthority"), Get("subject"), Get("signer"));
+            }
+            catch { /* ignore */ }
+        }
+
+        var origOpen  = fullText.IndexOf(OrigFileTag,   StringComparison.Ordinal);
+        var origClose = fullText.IndexOf(OrigFileClose, StringComparison.Ordinal);
+        if (origOpen >= 0 && origClose > origOpen)
+        {
+            origFile = fullText[(origOpen + OrigFileTag.Length)..origClose].Trim();
+            fullText = fullText[(origClose + OrigFileClose.Length)..].Trim();
+        }
+
+        return (metadata, origFile, fullText);
+    }
+
+    /// <summary>Danh sách tài liệu đang chờ kiểm duyệt (STATUS='PENDING', OCR_STATUS='DONE').</summary>
+    public Task<IReadOnlyList<DocumentDto>> GetPendingDigitizeDocumentsAsync() =>
+        QueryAsync("""
+            SELECT ID, DOSSIER_ID, CODE, TITLE, FILE_NAME, OCR_STATUS, STATUS, DESCRIPTION
+            FROM DMS_DOCUMENTS
+            WHERE UPPER(NVL(STATUS, 'DRAFT')) = 'PENDING'
+              AND UPPER(NVL(OCR_STATUS, 'PENDING')) = 'DONE'
+            ORDER BY UPDATED_AT DESC, ID DESC
+            """, MapDocument);
+
+    /// <summary>Lấy DocumentDetailDto gồm metadata + fullText + originalFileName đã parse.</summary>
+    public async Task<DocumentDetailDto?> GetDocumentDetailAsync(long id)
+    {
+        var raw = await QuerySingleAsync("""
+            SELECT ID, DOSSIER_ID, CODE, TITLE, FILE_NAME, OCR_STATUS, STATUS, DESCRIPTION,
+                   CREATED_AT, UPDATED_AT
+            FROM DMS_DOCUMENTS WHERE ID=:id
+            """,
+            reader =>
+            {
+                var desc = reader.IsDBNull(7) ? null : reader.GetString(7);
+                return (
+                    Id:        reader.GetInt64(0),
+                    DossierId: reader.GetInt64(1),
+                    Code:      reader.GetString(2),
+                    Title:     reader.GetString(3),
+                    FileName:  reader.IsDBNull(4) ? null : reader.GetString(4),
+                    OcrStatus: reader.IsDBNull(5) ? null : reader.GetString(5),
+                    Status:    reader.IsDBNull(6) ? null : reader.GetString(6),
+                    Desc:      desc,
+                    CreatedAt: reader.IsDBNull(8) ? (DateTime?)null : reader.GetDateTime(8),
+                    UpdatedAt: reader.IsDBNull(9) ? (DateTime?)null : reader.GetDateTime(9));
+            },
+            P("id", id));
+
+        if (raw == default) return null;
+        var (meta, origFile, fullText) = DecodeDescription(raw.Desc);
+        return new DocumentDetailDto(
+            raw.Id, raw.DossierId, raw.Code, raw.Title,
+            raw.FileName, origFile, raw.OcrStatus, raw.Status,
+            fullText, meta, raw.CreatedAt, raw.UpdatedAt);
+    }
+
+    /// <summary>Cập nhật metadata + toàn văn sau khi người kiểm duyệt chỉnh sửa.</summary>
+    public async Task<DocumentDetailDto> UpdateDigitizeMetadataAndTextAsync(
+        long documentId,
+        ReviewContentUpdateRequest request)
+    {
+        var existing = await GetDocumentDetailAsync(documentId)
+            ?? throw new BusinessRuleException($"Không tìm thấy tài liệu #{documentId}.");
+        var actor = string.IsNullOrWhiteSpace(request.Actor) ? "current-user" : request.Actor.Trim();
+
+        var meta = new DigitizeMetadata(
+            request.DocumentNumber?.Trim(),
+            request.IssueDate?.Trim(),
+            request.IssuingAuthority?.Trim(),
+            request.Subject?.Trim(),
+            request.Signer?.Trim());
+
+        var encoded = EncodeDescription(meta, existing.OriginalFileName, request.FullText ?? string.Empty);
+        var storedDescription = TrimText(encoded, 3900);
+
+        await CreateDocumentVersionAsync(documentId, new DocumentVersionRequest(
+            actor,
+            string.IsNullOrWhiteSpace(request.Note) ? "Lưu phiên bản trước khi người kiểm duyệt chỉnh sửa" : request.Note));
+        await ExecuteAsync("""
+            UPDATE DMS_DOCUMENTS SET DESCRIPTION=:description, UPDATED_AT=SYSDATE WHERE ID=:id
+            """, P("description", storedDescription), P("id", documentId));
+        await InsertWorkflowEventAsync(
+            "DOCUMENT", documentId, "EDIT_OCR",
+            existing.Status, existing.Status ?? "PENDING",
+            string.IsNullOrWhiteSpace(request.Note) ? "Người kiểm duyệt chỉnh sửa metadata và nội dung OCR" : request.Note,
+            actor, "DEFAULT");
+
+        return await GetDocumentDetailAsync(documentId)
+            ?? throw new BusinessRuleException($"Không tải lại được tài liệu #{documentId}.");
+    }
+
+    /// <summary>Phê duyệt tài liệu và nhập kho chính thức.</summary>
+    public async Task<DocumentDetailDto> ApproveAndStoreDocumentAsync(
+        long documentId,
+        ApproveDocumentRequest request,
+        string uploadsFolder,
+        Action<string, DigitizeMetadata> regeneratePdfCallback)
+    {
+        var detail = await GetDocumentDetailAsync(documentId)
+            ?? throw new BusinessRuleException($"Không tìm thấy tài liệu #{documentId}.");
+        var actor = string.IsNullOrWhiteSpace(request.Actor) ? "system" : request.Actor.Trim();
+
+        if (detail.OcrStatus is not ("DONE" or "CONFIRMED"))
+            throw new BusinessRuleException($"Tài liệu #{documentId} chưa OCR hoàn tất (OCR_STATUS={detail.OcrStatus}).");
+
+        await using var connection = CreateConnection();
+        await connection.OpenAsync();
+        await using var transaction = (OracleTransaction)await connection.BeginTransactionAsync();
+
+        try
+        {
+            async Task ExecTx(string sql, params OracleParameter[] ps)
+            {
+                await using var cmd = BuildCommand(connection, sql, ps);
+                cmd.Transaction = transaction;
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            // Tái sinh PDF với metadata mới nhất
+            if (detail.Metadata is not null && !string.IsNullOrWhiteSpace(detail.FullText))
+            {
+                var ts = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
+                var newPdfName = $"{documentId}_digitized_{ts}.pdf";
+                var newPdfPath = Path.Combine(uploadsFolder, newPdfName);
+                regeneratePdfCallback(newPdfPath, detail.Metadata);
+                await ExecTx("UPDATE DMS_DOCUMENTS SET FILE_NAME=:fileName, UPDATED_AT=SYSDATE WHERE ID=:id",
+                    P("fileName", newPdfName), P("id", documentId));
+            }
+
+            // Version number
+            int versionNo;
+            await using (var vCmd = BuildCommand(connection,
+                "SELECT NVL(MAX(VERSION_NO), 0) + 1 FROM DMS_DOCUMENT_VERSIONS WHERE DOCUMENT_ID=:id",
+                P("id", documentId)))
+            {
+                vCmd.Transaction = transaction;
+                versionNo = Convert.ToInt32(await vCmd.ExecuteScalarAsync() ?? 1);
+            }
+
+            // Snapshot version APPROVED
+            await ExecTx("""
+                INSERT INTO DMS_DOCUMENT_VERSIONS
+                    (DOCUMENT_ID, VERSION_NO, CODE, TITLE, FILE_NAME, OCR_STATUS, STATUS, DESCRIPTION, NOTE, CREATED_BY)
+                VALUES
+                    (:docId, :vNo, :code, :title, :fileName, :ocrStatus, 'APPROVED', :desc, :note, :createdBy)
+                """,
+                P("docId", documentId), P("vNo", versionNo), P("code", detail.Code),
+                P("title", detail.Title), P("fileName", detail.FileName), P("ocrStatus", detail.OcrStatus),
+                P("desc", TrimText(detail.FullText ?? string.Empty, 3900)),
+                P("note", TrimText(request.Note ?? "Phê duyệt và nhập kho chính thức", 950)),
+                P("createdBy", actor));
+
+            await ExecTx("UPDATE DMS_DOCUMENTS SET STATUS='APPROVED', UPDATED_AT=SYSDATE WHERE ID=:id",
+                P("id", documentId));
+            await ExecTx("UPDATE DMS_DOSSIERS SET STATUS='APPROVED', UPDATED_AT=SYSDATE WHERE ID=:dossierId",
+                P("dossierId", detail.DossierId));
+
+            await ExecTx("""
+                INSERT INTO DMS_WORKFLOW_EVENTS
+                    (ENTITY_TYPE, ENTITY_ID, ACTION, FROM_STATUS, TO_STATUS, COMMENT_TEXT, ACTOR, UNIT_CODE)
+                VALUES ('DOCUMENT', :entityId, 'APPROVE', :fromStatus, 'APPROVED', :comment, :actor, 'DEFAULT')
+                """,
+                P("entityId", documentId), P("fromStatus", detail.Status ?? "PENDING"),
+                P("comment", TrimText(request.Note ?? "Phê duyệt và nhập kho chính thức", 950)),
+                P("actor", actor));
+
+            await transaction.CommitAsync();
+            _logger.LogInformation("Document #{Id} approved by {Actor}.", documentId, actor);
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+
+        return await GetDocumentDetailAsync(documentId)
+            ?? throw new BusinessRuleException($"Không tải lại được tài liệu #{documentId}.");
+    }
+
+    /// <summary>Từ chối hoặc yêu cầu bổ sung tài liệu.</summary>
+    public async Task<DocumentDto> RejectDocumentAsync(long documentId, RejectDocumentRequest request)
+    {
+        var document = await GetDocumentAsync(documentId)
+            ?? throw new BusinessRuleException($"Không tìm thấy tài liệu #{documentId}.");
+        var actor     = string.IsNullOrWhiteSpace(request.Actor) ? "system" : request.Actor.Trim();
+        var newStatus = request.NeedsSupplement ? "NEEDS_SUPPLEMENT" : "REJECTED";
+        var reason    = string.IsNullOrWhiteSpace(request.Reason) ? "Từ chối duyệt" : request.Reason.Trim();
+
+        await using var connection = CreateConnection();
+        await connection.OpenAsync();
+        await using var transaction = (OracleTransaction)await connection.BeginTransactionAsync();
+        try
+        {
+            async Task ExecTx(string sql, params OracleParameter[] ps)
+            {
+                await using var cmd = BuildCommand(connection, sql, ps);
+                cmd.Transaction = transaction;
+                await cmd.ExecuteNonQueryAsync();
+            }
+            await ExecTx("UPDATE DMS_DOCUMENTS SET STATUS=:status, UPDATED_AT=SYSDATE WHERE ID=:id",
+                P("status", newStatus), P("id", documentId));
+            await ExecTx("""
+                INSERT INTO DMS_WORKFLOW_EVENTS
+                    (ENTITY_TYPE, ENTITY_ID, ACTION, FROM_STATUS, TO_STATUS, COMMENT_TEXT, ACTOR, UNIT_CODE)
+                VALUES ('DOCUMENT', :entityId, :action, :fromStatus, :toStatus, :comment, :actor, 'DEFAULT')
+                """,
+                P("entityId", documentId),
+                P("action",   request.NeedsSupplement ? "REQUEST_SUPPLEMENT" : "REJECT"),
+                P("fromStatus", document.Status ?? "PENDING"),
+                P("toStatus",   newStatus),
+                P("comment",    TrimText(reason, 950)),
+                P("actor",      actor));
+            await transaction.CommitAsync();
+        }
+        catch { await transaction.RollbackAsync(); throw; }
+
+        return await GetDocumentAsync(documentId)
+            ?? throw new BusinessRuleException($"Không tải lại được tài liệu #{documentId}.");
+    }
+
+
     public async Task<long> CreateBatchImportJobAsync(
         string code,
         string excelFileName,

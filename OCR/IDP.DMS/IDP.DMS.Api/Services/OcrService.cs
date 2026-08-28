@@ -416,6 +416,361 @@ public class OcrService : IDisposable
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // GenerateDigitizedPdfWithMeta  — PDF có header metadata hành chính
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Sinh PDF số hóa có header bổ sung metadata hành chính (số hiệu, ngày, cơ quan, trích yếu, người ký).
+    /// </summary>
+    public void GenerateDigitizedPdfWithMeta(OcrPdfGenerationRequest request, DigitizeMetadata meta)
+    {
+        if (string.IsNullOrWhiteSpace(request.OutputPath))
+            throw new ArgumentException("Đường dẫn PDF đầu ra là bắt buộc.", nameof(request));
+
+        Directory.CreateDirectory(Path.GetDirectoryName(request.OutputPath)
+            ?? throw new InvalidOperationException("Không xác định được thư mục PDF đầu ra."));
+
+        var normalizedText = (request.Text ?? string.Empty)
+            .Replace("\r\n", "\n").Replace("\r", "\n").Trim();
+        if (string.IsNullOrWhiteSpace(normalizedText))
+            normalizedText = "Không có nội dung OCR.";
+
+        Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(18, Unit.Millimetre);
+                page.DefaultTextStyle(x => x.FontSize(10.5f).FontFamily("Arial"));
+
+                page.Header().Column(col =>
+                {
+                    col.Item().Text("HỆ THỐNG QUẢN LÝ VÀ SỐ HÓA HỒ SƠ IDP.DMS")
+                        .Bold().FontSize(14).FontColor("#0f3d73").AlignCenter();
+                    col.Item().PaddingBottom(4).Text("PHIÊN BẢN PDF SỐ HÓA OCR — BẢN CHÍNH THỨC")
+                        .FontSize(10).FontColor("#0f3d73").AlignCenter();
+
+                    // Bảng thông tin hành chính (metadata bóc tách)
+                    col.Item().PaddingTop(4).Table(table =>
+                    {
+                        table.ColumnsDefinition(cols =>
+                        {
+                            cols.ConstantColumn(48, Unit.Millimetre);
+                            cols.RelativeColumn();
+                        });
+                        void Row(string label, string? value, bool highlight = false)
+                        {
+                            table.Cell().Background(highlight ? "#fff3cd" : "#eaf2fb")
+                                .Padding(4).Text(label).Bold().FontSize(9f);
+                            table.Cell().Padding(4).Text(value ?? "—").FontSize(9f);
+                        }
+                        Row("Số/Ký hiệu",          meta.DocumentNumber, highlight: !string.IsNullOrWhiteSpace(meta.DocumentNumber));
+                        Row("Ngày ban hành",        meta.IssueDate);
+                        Row("Cơ quan ban hành",     meta.IssuingAuthority);
+                        Row("Trích yếu",            meta.Subject);
+                        Row("Người ký",             meta.Signer);
+                        Row("Mã tài liệu hệ thống", request.Code);
+                        Row("Tên tài liệu",         request.Title);
+                        Row("Tệp nguồn",            request.SourceFileName);
+                        Row("Công cụ OCR",          request.Engine);
+                        Row("Thời gian số hóa",     DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss"));
+                    });
+
+                    col.Item().PaddingTop(8).Text("TOÀN VĂN NỘI DUNG VĂN BẢN")
+                        .Bold().FontSize(11).FontColor("#0f3d73");
+                    col.Item().PaddingBottom(4)
+                        .LineHorizontal(0.5f).LineColor("#0f3d73");
+                });
+
+                page.Content().PaddingTop(8).Column(col =>
+                {
+                    foreach (var block in normalizedText.Split("\n\n", StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        col.Item().Text(block.Replace("\n", " ")).FontSize(10.5f).Justify();
+                        col.Item().Height(4);
+                    }
+                });
+
+                page.Footer().Row(row =>
+                {
+                    row.RelativeItem().Text(text =>
+                    {
+                        text.Span("IDP.DMS | Văn bản số hóa chính thức | Trang ");
+                        text.CurrentPageNumber();
+                        text.Span("/");
+                        text.TotalPages();
+                    });
+                    row.AutoItem().AlignRight()
+                        .Text(DateTime.Now.ToString("dd/MM/yyyy")).FontSize(8).FontColor("#888888");
+                });
+            });
+        }).GeneratePdf(request.OutputPath);
+
+        if (!File.Exists(request.OutputPath) || new FileInfo(request.OutputPath).Length == 0)
+            throw new InvalidOperationException("QuestPDF không tạo được file PDF số hóa (metadata mode).");
+
+        _logger.LogInformation("Digitized PDF with metadata generated: {Path}", request.OutputPath);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ExtractStructuredMetadataAsync  — Gemini trả về metadata JSON + toàn văn
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Gọi Gemini Vision API với prompt chuyên biệt để bóc tách ĐỒNG THỜI:
+    /// 1. Metadata có cấu trúc (số hiệu, ngày, cơ quan, trích yếu, người ký) dạng JSON
+    /// 2. Toàn văn nội dung văn bản (plain text UTF-8)
+    /// </summary>
+    public async Task<DigitizeMetadataResult> ExtractStructuredMetadataAsync(string imagePath)
+    {
+        if (!File.Exists(imagePath))
+            throw new FileNotFoundException("Không tìm thấy file ảnh cần số hóa.", imagePath);
+
+        return await ExtractStructuredMetadataWithGeminiAsync(imagePath);
+    }
+
+    private async Task<DigitizeMetadataResult> ExtractStructuredMetadataWithGeminiAsync(string imagePath)
+    {
+
+        var apiKey = _config["Gemini:ApiKey"];
+        var model  = _config["Gemini:Model"] ?? "gemini-3.6-flash";
+
+        if (string.IsNullOrWhiteSpace(apiKey) || apiKey == "YOUR_GEMINI_API_KEY_HERE")
+            throw new InvalidOperationException("Chưa cấu hình Gemini API Key.");
+
+        var imageBytes  = await File.ReadAllBytesAsync(imagePath);
+        var base64Image = Convert.ToBase64String(imageBytes);
+        var ext         = Path.GetExtension(imagePath).TrimStart('.').ToLowerInvariant();
+        var mimeType    = ext switch
+        {
+            "jpg" or "jpeg" => "image/jpeg",
+            "png"           => "image/png",
+            "webp"          => "image/webp",
+            _               => "image/jpeg"
+        };
+
+        var prompt = """
+Bạn là hệ thống OCR chuyên nghiệp cho văn bản hành chính Việt Nam.
+Nhiệm vụ: Phân tích hình ảnh tài liệu và trả về KẾT QUẢ GỒM HAI PHẦN theo đúng định dạng sau:
+
+PHẦN 1 — METADATA JSON (bắt buộc, trả về ngay trước toàn văn):
+[METADATA_JSON]
+{
+  "documentNumber": "<số hiệu/ký hiệu văn bản, ví dụ: 123/QĐ-UBND>",
+  "issueDate": "<ngày ban hành định dạng dd/MM/yyyy, ví dụ: 15/08/2025>",
+  "issuingAuthority": "<tên cơ quan ban hành>",
+  "subject": "<trích yếu nội dung văn bản>",
+  "signer": "<họ tên người ký, kèm chức vụ nếu có>"
+}
+[/METADATA_JSON]
+
+PHẦN 2 — TOÀN VĂN NỘI DUNG (ngay sau PHẦN 1):
+Chép lại TOÀN BỘ nội dung văn bản theo yêu cầu sau:
+1. Giữ nguyên bố cục: Quốc hiệu, Tiêu ngữ, tên cơ quan, số/ký hiệu, ngày tháng, trích yếu, căn cứ pháp lý.
+2. Giữ nguyên cấu trúc: tiêu đề, đoạn văn, điều/khoản/điểm, danh sách, bảng (dùng | phân cách cột).
+3. Ghi rõ nơi nhận, chức vụ/thẩm quyền ký, họ tên người ký. Dùng nhãn [DẤU MỘC], [CHỮ KÝ], [KHÔNG ĐỌC RÕ] khi cần.
+4. Giữ nguyên chính tả, dấu tiếng Việt, chữ hoa/thường, số liệu, đơn vị, dấu câu.
+5. Nếu nhiều trang: đặt --- Trang N --- trước mỗi trang.
+6. Chỉ trả về văn bản thuần UTF-8; không Markdown, không lời mở đầu, không nhận xét.
+""";
+
+        var requestBody = new
+        {
+            contents = new[]
+            {
+                new
+                {
+                    parts = new object[]
+                    {
+                        new { text = prompt },
+                        new { inlineData = new { mimeType, data = base64Image } }
+                    }
+                }
+            },
+            generationConfig = new { temperature = 0.05, maxOutputTokens = 8192 }
+        };
+
+        var json = JsonSerializer.Serialize(requestBody);
+
+        bool isOAuthToken = apiKey.StartsWith("ya29.", StringComparison.Ordinal);
+        var url = isOAuthToken
+            ? $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+            : $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
+
+        var client = _httpClientFactory.CreateClient("Gemini");
+        client.Timeout = TimeSpan.FromSeconds(90);
+        if (isOAuthToken)
+            client.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
+
+        _logger.LogInformation("Calling Gemini for structured metadata extraction: {Path}", imagePath);
+
+        HttpResponseMessage? response = null;
+        string responseBody = string.Empty;
+        Exception? lastException = null;
+        const int maxAttempts = 3;
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                using var content = new StringContent(json, Encoding.UTF8, "application/json");
+                response     = await client.PostAsync(url, content);
+                responseBody = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode) break;
+
+                var transient = response.StatusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests
+                    || (int)response.StatusCode >= 500;
+                lastException = new HttpRequestException(
+                    $"Gemini API lỗi {(int)response.StatusCode}: {responseBody}", null, response.StatusCode);
+                if (!transient) throw new InvalidOperationException($"Gemini API từ chối ({(int)response.StatusCode}): {responseBody}");
+                if (attempt == maxAttempts) throw lastException;
+
+                var delay = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(Math.Pow(2, attempt - 1));
+                _logger.LogWarning("Gemini transient {StatusCode}; retry {Next}/{Max}.", response.StatusCode, attempt + 1, maxAttempts);
+                response.Dispose(); response = null;
+                await Task.Delay(delay);
+            }
+            catch (Exception ex) when ((ex is HttpRequestException or TaskCanceledException) && attempt < maxAttempts)
+            {
+                lastException = ex;
+                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt - 1)));
+            }
+        }
+
+        if (response is null || !response.IsSuccessStatusCode)
+            throw lastException ?? new HttpRequestException("Gemini API không trả về kết quả.");
+
+        using (response) { }
+
+        using var doc  = JsonDocument.Parse(responseBody);
+        var parts1 = doc.RootElement
+            .GetProperty("candidates")[0]
+            .GetProperty("content")
+            .GetProperty("parts");
+
+        var textSb1 = new StringBuilder();
+        foreach (var part in parts1.EnumerateArray())
+        {
+            if (part.TryGetProperty("text", out var textEl) && textEl.ValueKind == JsonValueKind.String)
+            {
+                var val = textEl.GetString();
+                if (!string.IsNullOrWhiteSpace(val))
+                    textSb1.AppendLine(val);
+            }
+        }
+        var rawText = textSb1.ToString().Trim();
+
+        // Parse PHẦN 1: metadata JSON
+        var metadata = DigitizeMetadata.Empty;
+        var fullText = rawText.Trim();
+
+        const string metaOpen  = "[METADATA_JSON]";
+        const string metaClose = "[/METADATA_JSON]";
+        var openIdx  = rawText.IndexOf(metaOpen,  StringComparison.Ordinal);
+        var closeIdx = rawText.IndexOf(metaClose, StringComparison.Ordinal);
+
+        if (openIdx >= 0 && closeIdx > openIdx)
+        {
+            var jsonSlice = rawText[(openIdx + metaOpen.Length)..closeIdx].Trim();
+            fullText = rawText[(closeIdx + metaClose.Length)..].Trim();
+
+            try
+            {
+                using var metaDoc = JsonDocument.Parse(jsonSlice);
+                var root = metaDoc.RootElement;
+                metadata = new DigitizeMetadata(
+                    NullIfEmpty(root, "documentNumber"),
+                    NullIfEmpty(root, "issueDate"),
+                    NullIfEmpty(root, "issuingAuthority"),
+                    NullIfEmpty(root, "subject"),
+                    NullIfEmpty(root, "signer"));
+                _logger.LogInformation("Structured metadata extracted: docNum={DocNum}", metadata.DocumentNumber);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogWarning(ex, "Failed to parse Gemini metadata JSON; using empty metadata.");
+                fullText = rawText.Trim(); // fallback: toàn bộ text
+            }
+        }
+        else
+        {
+            _logger.LogWarning("Gemini did not return [METADATA_JSON] block; using raw text as fullText.");
+        }
+
+        if (string.IsNullOrWhiteSpace(fullText))
+            fullText = rawText.Trim();
+
+        return new DigitizeMetadataResult(metadata, fullText, "gemini");
+    }
+
+    public DigitizeMetadataResult ExtractWithEasyOcrFallback(string imagePath)
+    {
+        var pythonExe = _config["Ocr:PythonExecutable"] ?? "python";
+        var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "easyocr_worker.py");
+        if (!File.Exists(scriptPath))
+        {
+            var altPath = Path.Combine(Directory.GetCurrentDirectory(), "easyocr_worker.py");
+            if (File.Exists(altPath)) scriptPath = altPath;
+        }
+
+        if (!File.Exists(scriptPath))
+        {
+            _logger.LogWarning("easyocr_worker.py not found at {ScriptPath}. Returning placeholder text.", scriptPath);
+            return new DigitizeMetadataResult(DigitizeMetadata.Empty, "(Tài liệu đã tiếp nhận, chưa có kết quả OCR)", "fallback");
+        }
+
+        try
+        {
+            var startInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = pythonExe,
+                Arguments = $"\"{scriptPath}\" \"{imagePath}\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                StandardOutputEncoding = Encoding.UTF8
+            };
+
+            using var process = System.Diagnostics.Process.Start(startInfo);
+            if (process == null) throw new InvalidOperationException("Không thể khởi chạy tiến trình EasyOCR.");
+
+            var output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit(35000);
+
+            using var doc = JsonDocument.Parse(output);
+            var root = doc.RootElement;
+            var fullText = root.GetProperty("fullText").GetString() ?? string.Empty;
+
+            var metadata = DigitizeMetadata.Empty;
+            if (root.TryGetProperty("metadata", out var metaEl))
+            {
+                metadata = new DigitizeMetadata(
+                    NullIfEmpty(metaEl, "documentNumber"),
+                    NullIfEmpty(metaEl, "issueDate"),
+                    NullIfEmpty(metaEl, "issuingAuthority"),
+                    NullIfEmpty(metaEl, "subject"),
+                    NullIfEmpty(metaEl, "signer")
+                );
+            }
+
+            _logger.LogInformation("EasyOCR fallback completed successfully for {ImagePath}", imagePath);
+            return new DigitizeMetadataResult(metadata, fullText, "easyocr-local");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "EasyOCR fallback failed on {ImagePath}", imagePath);
+            return new DigitizeMetadataResult(DigitizeMetadata.Empty, "(Tài liệu hình ảnh đã tải lên. Vui lòng kiểm tra đối soát nội dung)", "fallback");
+        }
+    }
+
+    private static string? NullIfEmpty(JsonElement root, string prop) =>
+        root.TryGetProperty(prop, out var val) && val.ValueKind == JsonValueKind.String
+            ? (string.IsNullOrWhiteSpace(val.GetString()) ? null : val.GetString()!.Trim())
+            : null;
+
+    // ─────────────────────────────────────────────────────────────────────────
     // ExtractTextWithGemini  (Gemini Vision API — unchanged)
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -423,7 +778,7 @@ public class OcrService : IDisposable
     private async Task<string> ExtractTextWithGemini(string imagePath)
     {
         var apiKey = _config["Gemini:ApiKey"];
-        var model  = _config["Gemini:Model"] ?? "gemini-flash-latest";
+        var model  = _config["Gemini:Model"] ?? "gemini-3.6-flash";
 
         if (string.IsNullOrWhiteSpace(apiKey) || apiKey == "YOUR_GEMINI_API_KEY_HERE")
             throw new Exception("Chưa cấu hình Gemini API Key. Vui lòng cập nhật 'Gemini:ApiKey' trong appsettings.json.");
@@ -469,11 +824,23 @@ Yêu cầu bắt buộc:
         };
 
         var json   = JsonSerializer.Serialize(requestBody);
-        var url    = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
+
+        // Detect auth type: OAuth token (AQ. prefix) uses Bearer header; API key (AIza...) uses ?key= param.
+        bool isOAuthToken = apiKey.StartsWith("ya29.", StringComparison.Ordinal);
+        var url = isOAuthToken
+            ? $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+            : $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
+
         var client = _httpClientFactory.CreateClient("Gemini");
         client.Timeout = TimeSpan.FromSeconds(60);
 
-        _logger.LogInformation("Calling Gemini Vision API with model {Model}", model);
+        // Set Bearer auth header for OAuth tokens
+        if (isOAuthToken)
+            client.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
+
+        _logger.LogInformation("Calling Gemini Vision API with model {Model} (auth={AuthType})",
+            model, isOAuthToken ? "Bearer" : "ApiKey");
 
         HttpResponseMessage? response  = null;
         string responseBody            = string.Empty;
@@ -524,14 +891,22 @@ Yêu cầu bắt buộc:
         }
 
         using var doc  = JsonDocument.Parse(responseBody);
-        var text = doc.RootElement
+        var parts2 = doc.RootElement
             .GetProperty("candidates")[0]
             .GetProperty("content")
-            .GetProperty("parts")[0]
-            .GetProperty("text")
-            .GetString() ?? string.Empty;
+            .GetProperty("parts");
 
-        return text.Trim();
+        var textSb2 = new StringBuilder();
+        foreach (var part in parts2.EnumerateArray())
+        {
+            if (part.TryGetProperty("text", out var textEl) && textEl.ValueKind == JsonValueKind.String)
+            {
+                var val = textEl.GetString();
+                if (!string.IsNullOrWhiteSpace(val))
+                    textSb2.AppendLine(val);
+            }
+        }
+        return textSb2.ToString().Trim();
     }
 
     public void Dispose() { }

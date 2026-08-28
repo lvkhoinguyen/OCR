@@ -42,22 +42,31 @@ public sealed record AuthConfigurationDto(
     bool BypassEnabled,
     AuthUserDto? User);
 
-public sealed record LoginRequest(
-    [property: Required, StringLength(80)] string Username,
-    [property: Required] string Password);
+public sealed class LoginRequest
+{
+    [Required, StringLength(80)] public string Username { get; set; } = string.Empty;
+    [Required] public string Password { get; set; } = string.Empty;
+}
 
-public sealed record RegisterRequest(
-    [property: Required, StringLength(80, MinimumLength = 3)] string Username,
-    [property: Required, StringLength(200, MinimumLength = 8)] string Password,
-    [property: Required, StringLength(255)] string FullName,
-    [property: EmailAddress, StringLength(255)] string? Email,
-    [property: StringLength(80)] string? RoleCode);
+public sealed class RegisterRequest
+{
+    [Required, StringLength(80, MinimumLength = 3)] public string Username { get; set; } = string.Empty;
+    [Required, StringLength(200, MinimumLength = 8)] public string Password { get; set; } = string.Empty;
+    [Required, StringLength(255)] public string FullName { get; set; } = string.Empty;
+    [EmailAddress, StringLength(255)] public string? Email { get; set; }
+    [StringLength(80)] public string? RoleCode { get; set; }
+}
 
-public sealed record RefreshTokenRequest([property: Required] string RefreshToken);
+public sealed class RefreshTokenRequest
+{
+    [Required] public string RefreshToken { get; set; } = string.Empty;
+}
 
-public sealed record ChangePasswordRequest(
-    [property: Required] string CurrentPassword,
-    [property: Required, StringLength(200, MinimumLength = 8)] string NewPassword);
+public sealed class ChangePasswordRequest
+{
+    [Required] public string CurrentPassword { get; set; } = string.Empty;
+    [Required, StringLength(200, MinimumLength = 8)] public string NewPassword { get; set; } = string.Empty;
+}
 
 public sealed record LogoutRequest(string? RefreshToken);
 

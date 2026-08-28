@@ -213,8 +213,26 @@ export const uiApi = {
     verifyDocumentSignature: (documentId) =>
       request(`/api/dms/gd2/documents/${documentId}/signatures/verify`),
     pdfSignatures: (documentId) => request(`/api/dms/documents/${documentId}/signatures`),
-    documentPdfBlob: (documentId) =>
-      request(`/api/dms/documents/${documentId}/file`, { responseType: "blob" }),
+    documentPdfBlob: (documentId, type = "digitized") =>
+      request(`/api/dms/documents/${documentId}/file?type=${type}`, { responseType: "blob" }),
+    documentFileUrl: (documentId, type = "digitized") =>
+      `${baseUrl}/api/dms/documents/${documentId}/file?type=${type}`,
+    uploadAndDigitize: (storageId, file) => {
+      const formData = new FormData();
+      formData.append("storageId", storageId);
+      formData.append("file", file);
+      return request("/api/dms/documents/upload-and-digitize", { method: "POST", body: formData });
+    },
+    pendingReviewDocuments: () =>
+      request("/api/dms/documents/pending-review"),
+    digitizeDocumentDetail: (documentId) =>
+      request(`/api/dms/documents/${documentId}/detail`),
+    updateReviewContent: (documentId, payload) =>
+      request(`/api/dms/documents/${documentId}/review-content`, jsonOptions("PUT", payload)),
+    approveDigitizeDocument: (documentId, payload) =>
+      request(`/api/dms/documents/${documentId}/approve`, jsonOptions("POST", payload)),
+    rejectDigitizeDocument: (documentId, payload) =>
+      request(`/api/dms/documents/${documentId}/reject`, jsonOptions("POST", payload)),
     signPdf: (documentId, payload) => {
       const formData = new FormData();
       Object.entries(payload).forEach(([key, value]) => {

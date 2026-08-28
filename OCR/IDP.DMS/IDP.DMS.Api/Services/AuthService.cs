@@ -106,6 +106,7 @@ public sealed class AuthService
             await SeedRoleAsync(connection, "DATA_ENTRY", "Cán bộ nhập liệu",
                 "DMS.READ,DMS.WRITE,DMS.OCR,DMS.SUBMIT");
             await SeedRoleAsync(connection, "VIEWER", "Người xem", "DMS.READ");
+            await SeedDefaultAdminUserAsync(connection);
 
             _schemaReady = true;
         }
@@ -454,5 +455,29 @@ public sealed class AuthService
                 (source.CODE, source.NAME, source.PERMISSIONS, 'ACTIVE', SYSDATE)
             """, P("code", code), P("name", name), P("permissions", permissions));
         await command.ExecuteNonQueryAsync();
+    }
+
+    private static async Task SeedDefaultAdminUserAsync(OracleConnection connection)
+    {
+        var existingUserCount = Convert.ToInt64(await ExecuteScalarAsync(connection,
+            "SELECT COUNT(*) FROM DMS_USERS WHERE USERNAME IS NOT NULL AND PASSWORD_HASH IS NOT NULL"));
+        if (existingUserCount == 0)
+        {
+            var adminRole = await FindRoleAsync(connection, "SYSTEM_ADMIN");
+            if (adminRole.HasValue)
+            {
+                var passwordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123456", workFactor: 11);
+                var sql = """
+                    INSERT INTO DMS_USERS
+                        (CODE, NAME, STATUS, USERNAME, PASSWORD_HASH, FULL_NAME, EMAIL, ROLE_ID, CREATED_AT)
+                    VALUES
+                        ('admin', 'Quản trị viên hệ thống', 'ACTIVE', 'admin', :passwordHash, 'Quản trị viên hệ thống', 'admin@idp.vn', :roleId, SYSDATE)
+                    """;
+                await using var command = BuildCommand(connection, sql,
+                    P("passwordHash", passwordHash),
+                    P("roleId", adminRole.Value.Id));
+                await command.ExecuteNonQueryAsync();
+            }
+        }
     }
 }

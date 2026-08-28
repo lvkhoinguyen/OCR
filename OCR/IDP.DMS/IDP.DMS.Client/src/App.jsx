@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { uiApi } from "./services/uiApi";
 import LoginScreen from "./components/LoginScreen";
+import DigitizeReviewScreen from "./components/screens/DigitizeReviewScreen";
 
 const ArchiveLabelModal = lazy(() => import("./components/ArchiveLabelModal"));
 const TechnicalModelViewer = lazy(() => import("./components/TechnicalModelViewer"));
@@ -86,7 +87,7 @@ const designMenuGroups = [
   },
   {
     title: "Nhập liệu",
-    items: ["GĐ2-1 Quản lý tài liệu", "Nhập mới hồ sơ", "Cập nhật hồ sơ", "Import hồ sơ", "GĐ2-6 OCR AI tích hợp", "GĐ2-19 Xác nhận thông tin"]
+    items: ["Số hóa Ảnh sang PDF & Kiểm duyệt", "GĐ2-1 Quản lý tài liệu", "Nhập mới hồ sơ", "Cập nhật hồ sơ", "Import hồ sơ", "GĐ2-6 OCR AI tích hợp", "GĐ2-19 Xác nhận thông tin"]
   },
   {
     title: "Tìm kiếm",
@@ -115,6 +116,7 @@ const designMenuGroups = [
 ];
 
 const itemResourceMap = {
+  "Số hóa Ảnh sang PDF & Kiểm duyệt": "digitize-review",
   "Quản lý Menu": "menus",
   "Quản lý Nhóm quyền & Nhóm quyền báo cáo": "permission-groups",
   "Quản lý Đơn vị / Cây đơn vị": "org-units",
@@ -2854,6 +2856,7 @@ export default function App() {
           {activeResource === "approval" && <ApprovalScreen title={activeItem} />}
           {activeResource === "report-dashboard" && <DashboardReportScreen />}
           {activeResource === "permission-groups" && <PermissionScreen title={activeItem} />}
+          {activeResource === "digitize-review" && <DigitizeReviewScreen />}
           {activeResource === "ocr-screen" && <OcrScreen />}
           {activeResource === "integration-screen" && <IntegrationScreen />}
           {activeResource === "workflow-builder" && <WorkflowBuilderScreen />}
@@ -2878,7 +2881,7 @@ export default function App() {
           {activeResource === "gd2-dossier-system" && <GD22526DossierBorrowScreen mode="catalog" title={activeItem} />}
           {activeResource === "gd2-borrow-process" && <GD22526DossierBorrowScreen mode="borrow" title={activeItem} />}
           {![
-            "storage", "dossiers", "documents", "ocr-screen", "integration-screen",
+            "digitize-review", "storage", "dossiers", "documents", "ocr-screen", "integration-screen",
             "approval", "borrow", "reports", "report-dashboard", "permission-groups",
             "workflow-builder", "import-jobs",
             "gd2-documents", "gd2-workflow", "gd2-permissions", "gd2-ocr", "gd2-integration", "gd2-signature",

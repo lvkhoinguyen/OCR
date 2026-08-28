@@ -1,4 +1,4 @@
-﻿using IDP.DMS.Api.Middlewares;
+using IDP.DMS.Api.Middlewares;
 using IDP.DMS.Api.Services;
 using IDP.DMS.Api.Authorization;
 using IDP.DMS.Api.Models;
@@ -39,6 +39,11 @@ builder.Services.AddScoped<PdfSigningService>();
 builder.Services.AddScoped<BatchImportService>();
 builder.Services.AddSingleton<BatchOcrQueue>();
 builder.Services.AddHostedService<BatchOcrWorker>();
+
+// Prevent a BackgroundService crash (e.g. BatchOcrWorker when Oracle tables missing)
+// from taking down the entire host.
+builder.Services.Configure<HostOptions>(opts =>
+    opts.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore);
 builder.Services.Configure<AuthenticationBypassOptions>(
     builder.Configuration.GetSection(AuthenticationBypassOptions.SectionName));
 

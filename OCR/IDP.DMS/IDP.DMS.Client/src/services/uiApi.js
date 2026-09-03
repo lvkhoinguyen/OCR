@@ -184,7 +184,19 @@ export const uiApi = {
   },
   screen: (featureId) => request(`/api/ui/features/${encodeURIComponent(featureId)}/screen`),
   gd2: {
-    transition: (payload) => request("/api/dms/gd2/workflow/transition", jsonOptions("POST", payload)),
+    transition: async (payload) => {
+      const res = await request("/api/dms/gd2/workflow/transition", jsonOptions("POST", payload));
+      if (payload?.action === "APPROVE") {
+        try {
+          const approvedList = JSON.parse(localStorage.getItem("idp.dms.approvedList") || "[]");
+          if (payload.entityId) approvedList.push(String(payload.entityId));
+          if (payload.recipient) approvedList.push(String(payload.recipient));
+          localStorage.setItem("idp.dms.approvedList", JSON.stringify([...new Set(approvedList)]));
+          window.dispatchEvent(new CustomEvent("dms:dossier-approved", { detail: payload }));
+        } catch {}
+      }
+      return res;
+    },
     createWorkflowDraftSeed: (storageId = "") =>
       request(`/api/dms/gd2/workflow/test-draft${storageId ? `?storageId=${encodeURIComponent(storageId)}` : ""}`, jsonOptions("POST", {})),
     workflowItems: () => request("/api/dms/gd2/workflow/items"),
@@ -229,8 +241,16 @@ export const uiApi = {
       request(`/api/dms/documents/${documentId}/detail`),
     updateReviewContent: (documentId, payload) =>
       request(`/api/dms/documents/${documentId}/review-content`, jsonOptions("PUT", payload)),
-    approveDigitizeDocument: (documentId, payload) =>
-      request(`/api/dms/documents/${documentId}/approve`, jsonOptions("POST", payload)),
+    approveDigitizeDocument: async (documentId, payload) => {
+      const res = await request(`/api/dms/documents/${documentId}/approve`, jsonOptions("POST", payload));
+      try {
+        const approvedList = JSON.parse(localStorage.getItem("idp.dms.approvedList") || "[]");
+        approvedList.push(String(documentId));
+        localStorage.setItem("idp.dms.approvedList", JSON.stringify([...new Set(approvedList)]));
+        window.dispatchEvent(new CustomEvent("dms:dossier-approved", { detail: { documentId } }));
+      } catch {}
+      return res;
+    },
     rejectDigitizeDocument: (documentId, payload) =>
       request(`/api/dms/documents/${documentId}/reject`, jsonOptions("POST", payload)),
     signPdf: (documentId, payload) => {

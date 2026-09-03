@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using IDP.DMS.Api.Models;
 
@@ -35,6 +35,7 @@ public sealed class UiDesignService
             "Mẫu loại văn bản, Phông lưu trữ & Mục lục"
         ]),
         new("Nhập liệu & Số hóa hồ sơ", [
+            "Số hóa Ảnh sang PDF & Kiểm duyệt",
             "Thêm mới & Quản lý danh sách hồ sơ",
             "Quản lý văn bản thành phần",
             "Chuyển kho hồ sơ",

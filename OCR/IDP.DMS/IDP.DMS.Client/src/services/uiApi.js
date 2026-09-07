@@ -445,6 +445,13 @@ export const uiApi = {
     batchImportJob: (jobId) => request(`/api/dms/dossiers/batch-import-jobs/${jobId}`),
     batchImportJobs: (take = 20) => request(`/api/dms/dossiers/batch-import-jobs?take=${encodeURIComponent(take)}`)
   },
+  borrowRequests: (status = "") => {
+    const params = status ? `?status=${encodeURIComponent(status)}` : "";
+    return request(`/api/dms/borrow-requests${params}`);
+  },
+  createBorrow: (payload) => request("/api/dms/borrow-requests", jsonOptions("POST", payload)),
+  approveBorrow: (id, payload) =>
+    request(`/api/dms/borrow-requests/${id}/approve`, jsonOptions("POST", payload)),
   autoGenerateStorage: (payload) => request("/api/dms/storage-locations/auto-generate", jsonOptions("POST", payload)),
   crud: (type) => {
     const paths = {

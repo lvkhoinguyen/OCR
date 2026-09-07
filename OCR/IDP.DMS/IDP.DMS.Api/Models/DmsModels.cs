@@ -105,21 +105,32 @@ public sealed record QuickUploadRecordsResult(
 public sealed record BorrowRequestDto(
     long Id,
     long DossierId,
+    string? DossierCode,
+    string? DossierTitle,
     string Borrower,
+    string? BorrowerUnit,
+    string? ExploitMode,
+    string? Purpose,
+    DateTime? BorrowFrom,
+    DateTime? BorrowTo,
+    string? Status,
+    string? Approver,
+    string? Note,
+    DateTime? CreatedAt);
+
+public sealed record BorrowRequestRequest(
+    long DossierId,
+    string Borrower,
+    string? BorrowerUnit,
+    string? ExploitMode,
+    string? Purpose,
     DateTime? BorrowFrom,
     DateTime? BorrowTo,
     string? Status,
     string? Approver,
     string? Note);
 
-public sealed record BorrowRequestRequest(
-    long DossierId,
-    string Borrower,
-    DateTime? BorrowFrom,
-    DateTime? BorrowTo,
-    string? Status,
-    string? Approver,
-    string? Note);
+public sealed record BorrowApproveRequest(string Approver, string? Note);
 
 public sealed record SimpleRecordDto(
     long Id,

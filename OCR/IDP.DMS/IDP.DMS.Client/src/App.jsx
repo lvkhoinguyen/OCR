@@ -52,7 +52,7 @@ import StorageScreen from "./components/screens/StorageScreen";
 import DossierScreen from "./components/screens/DossierScreen";
 import SimpleResourceScreen from "./components/screens/SimpleResourceScreen";
 import ApprovalScreen from "./components/screens/ApprovalScreen";
-import { SearchScreen } from "./components/screens/SearchAndBorrowScreens";
+import { SearchScreen, BorrowApprovalScreen } from "./components/screens/SearchAndBorrowScreens";
 import GD26OcrScreen from "./components/screens/GD26OcrScreen";
 
 const ArchiveLabelModal = lazy(() => import("./components/ArchiveLabelModal"));
@@ -2631,7 +2631,7 @@ export default function App() {
         <section className="ops-screen">
           {activeResource === "storage" && <StorageScreen />}
           {activeResource === "dossiers" && (activeGroup === "Tìm kiếm" || activeGroup === "Khai thác" || activeGroup === "Tra cứu & Đăng ký mượn hồ sơ" ? <SearchScreen /> : <DossierScreen mode={activeItem} />)}
-          {activeResource === "borrow" && <BorrowScreen />}
+          {activeResource === "borrow" && <BorrowApprovalScreen />}
           {activeResource === "reports" && <ReportCrudScreen />}
           {activeResource === "documents" && <DocumentManagementScreen />}
           {activeResource === "approval" && <ApprovalScreen title={activeItem} />}

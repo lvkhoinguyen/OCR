@@ -1046,9 +1046,9 @@ namespace IDP.DMS.Api.Controllers
         #region Borrow Requests
 
         [HttpGet("borrow-requests")]
-        public async Task<IActionResult> GetBorrowRequests()
+        public async Task<IActionResult> GetBorrowRequests([FromQuery] string? status = null)
         {
-            return Ok(await _dmsService.GetBorrowRequestsAsync());
+            return Ok(await _dmsService.GetBorrowRequestsAsync(status));
         }
 
         [HttpPost("borrow-requests")]
@@ -1056,6 +1056,13 @@ namespace IDP.DMS.Api.Controllers
         {
             var id = await _dmsService.CreateBorrowRequestAsync(request);
             return Created($"/api/dms/borrow-requests/{id}", new { id });
+        }
+
+        [HttpPost("borrow-requests/{id:long}/approve")]
+        public async Task<IActionResult> ApproveBorrowRequest(long id, [FromBody] BorrowApproveRequest request)
+        {
+            var result = await _dmsService.ApproveBorrowRequestAsync(id, request);
+            return Ok(result);
         }
 
         [HttpPut("borrow-requests/{id:long}")]

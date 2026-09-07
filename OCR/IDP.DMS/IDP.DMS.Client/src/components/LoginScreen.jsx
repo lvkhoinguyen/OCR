@@ -70,9 +70,9 @@ export default function LoginScreen({ onLogin }) {
     }
   }
 
-  const fillDefaultAdmin = () => {
-    setUsername("admin");
-    setPassword("Admin@123456");
+  const fillCredentials = (u, p) => {
+    setUsername(u);
+    setPassword(p);
     setError("");
   };
 
@@ -148,7 +148,7 @@ export default function LoginScreen({ onLogin }) {
           <>
             <div className="login-heading" style={{ marginBottom: 12 }}>
               <h1 id="login-title" style={{ fontSize: 20 }}>Đăng nhập hệ thống</h1>
-              <p style={{ fontSize: 13 }}>Sử dụng tài khoản quản trị hoặc tài khoản được cấp.</p>
+              <p style={{ fontSize: 13 }}>Sử dụng tài khoản quản trị hoặc tài khoản được cấp theo vai trò.</p>
             </div>
 
             {/* Box gợi ý tài khoản mặc định */}
@@ -156,33 +156,86 @@ export default function LoginScreen({ onLogin }) {
               background: "#f0fdf4",
               border: "1px solid #bbf7d0",
               borderRadius: 8,
-              padding: "10px 14px",
+              padding: "10px 12px",
               marginBottom: 16,
               fontSize: 12
             }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                <span style={{ fontWeight: 700, color: "#166534", display: "flex", alignItems: "center", gap: 4 }}>
-                  <ShieldCheck size={15} /> Tài khoản mặc định hệ thống:
-                </span>
+              <div style={{ fontWeight: 700, color: "#166534", display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
+                <ShieldCheck size={15} /> Tài khoản kiểm thử nhanh:
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
                 <button
                   type="button"
-                  onClick={fillDefaultAdmin}
+                  onClick={() => fillCredentials("admin", "Admin@123")}
                   style={{
-                    background: "#16a34a",
-                    color: "#ffffff",
-                    border: "none",
-                    borderRadius: 4,
-                    padding: "3px 8px",
+                    background: "#ffffff",
+                    border: "1px solid #16a34a",
+                    color: "#166534",
+                    borderRadius: 6,
+                    padding: "6px 8px",
                     fontSize: 11,
-                    fontWeight: 700,
-                    cursor: "pointer"
+                    textAlign: "left",
+                    cursor: "pointer",
+                    lineHeight: 1.3
                   }}
                 >
-                  Điền nhanh
+                  <strong>1. Quản trị (Admin)</strong><br />
+                  <span style={{ color: "#64748b" }}>admin / Admin@123</span>
                 </button>
-              </div>
-              <div style={{ color: "#374151", lineHeight: 1.5 }}>
-                Tài khoản: <strong style={{ color: "#0f3d73" }}>admin</strong> • Mật khẩu: <strong style={{ color: "#0f3d73" }}>Admin@123456</strong>
+                <button
+                  type="button"
+                  onClick={() => fillCredentials("nhaplieu", "User@123")}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #2563eb",
+                    color: "#1d4ed8",
+                    borderRadius: 6,
+                    padding: "6px 8px",
+                    fontSize: 11,
+                    textAlign: "left",
+                    cursor: "pointer",
+                    lineHeight: 1.3
+                  }}
+                >
+                  <strong>2. Nhập liệu</strong><br />
+                  <span style={{ color: "#64748b" }}>nhaplieu / User@123</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fillCredentials("lanhdao", "Approver@123")}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #d97706",
+                    color: "#b45309",
+                    borderRadius: 6,
+                    padding: "6px 8px",
+                    fontSize: 11,
+                    textAlign: "left",
+                    cursor: "pointer",
+                    lineHeight: 1.3
+                  }}
+                >
+                  <strong>3. Kiểm duyệt</strong><br />
+                  <span style={{ color: "#64748b" }}>lanhdao / Approver@123</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fillCredentials("khach", "Guest@123")}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #7c3aed",
+                    color: "#6d28d9",
+                    borderRadius: 6,
+                    padding: "6px 8px",
+                    fontSize: 11,
+                    textAlign: "left",
+                    cursor: "pointer",
+                    lineHeight: 1.3
+                  }}
+                >
+                  <strong>4. Khai thác</strong><br />
+                  <span style={{ color: "#64748b" }}>khach / Guest@123</span>
+                </button>
               </div>
             </div>
 

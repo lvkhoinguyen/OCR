@@ -11,10 +11,11 @@ import { formatCell } from "../../hooks/useCrud";
  */
 export function StatusBadge({ status }) {
   const map = {
-    PUBLISHED: { label: "Xuất bản", color: "#16a34a", bg: "#dcfce7" },
-    PENDING: { label: "Chờ", color: "#b45309", bg: "#fef3c7" },
-    DRAFT: { label: "Nháp", color: "#6b7280", bg: "#f3f4f6" },
-    APPROVED: { label: "Duyệt", color: "#16a34a", bg: "#dcfce7" },
+    PUBLISHED: { label: "Đã xuất bản", color: "#059669", bg: "#d1fae5" },
+    WAITING_APPROVAL: { label: "Chờ duyệt", color: "#b45309", bg: "#fef3c7" },
+    PENDING: { label: "Chờ duyệt", color: "#b45309", bg: "#fef3c7" },
+    DRAFT: { label: "Lưu nháp", color: "#6b7280", bg: "#f3f4f6" },
+    APPROVED: { label: "Đã duyệt", color: "#16a34a", bg: "#dcfce7" },
     REJECTED: { label: "Từ chối", color: "#dc2626", bg: "#fee2e2" },
     CANCELLED: { label: "Hủy", color: "#6b7280", bg: "#f3f4f6" },
     NEEDS_SUPPLEMENT: { label: "Cần bổ sung", color: "#d97706", bg: "#ffedd5" },

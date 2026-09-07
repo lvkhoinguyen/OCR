@@ -106,6 +106,7 @@ export function formatCell(value) {
 /** Returns a user-friendly label for the first extra field based on resource type. */
 export function extraLabel1(resource) {
   if (resource === "users") return "Email";
+  if (resource === "dossier-types") return "Thời hạn bảo quản";
   if (["org-units", "departments", "admin-units"].includes(resource)) return "Cấp/loại đơn vị";
   if (["permission-groups", "roles", "user-groups"].includes(resource)) return "Phạm vi quyền";
   if (["reports", "report-groups"].includes(resource)) return "Loại báo cáo";

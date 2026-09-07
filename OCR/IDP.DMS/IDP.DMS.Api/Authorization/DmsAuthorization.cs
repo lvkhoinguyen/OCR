@@ -90,14 +90,19 @@ public sealed class DmsPermissionHandler : AuthorizationHandler<DmsPermissionReq
 
         if (path.Contains("/workflow", StringComparison.Ordinal))
         {
-            return [DmsPermissions.Submit, DmsPermissions.Review];
+            return [DmsPermissions.Submit, DmsPermissions.Review, DmsPermissions.Approve, DmsPermissions.Publish];
         }
 
         if (path.Contains("/review-", StringComparison.Ordinal) ||
             path.Contains("/review-content", StringComparison.Ordinal) ||
             path.Contains("/approve", StringComparison.Ordinal))
         {
-            return [DmsPermissions.Review, DmsPermissions.Approve];
+            return [DmsPermissions.Review, DmsPermissions.Approve, DmsPermissions.Publish];
+        }
+
+        if (path.Contains("/dossiers", StringComparison.Ordinal))
+        {
+            return [DmsPermissions.Write, DmsPermissions.Approve, DmsPermissions.Publish, DmsPermissions.Review];
         }
 
         return [DmsPermissions.Write];

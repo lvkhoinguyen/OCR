@@ -48,6 +48,11 @@ import { uiApi } from "./services/uiApi";
 import LoginScreen from "./components/LoginScreen";
 import DigitizeReviewScreen from "./components/screens/DigitizeReviewScreen";
 import DashboardReportScreen from "./components/screens/DashboardReportScreen";
+import StorageScreen from "./components/screens/StorageScreen";
+import DossierScreen from "./components/screens/DossierScreen";
+import SimpleResourceScreen from "./components/screens/SimpleResourceScreen";
+import ApprovalScreen from "./components/screens/ApprovalScreen";
+import { SearchScreen } from "./components/screens/SearchAndBorrowScreens";
 
 const ArchiveLabelModal = lazy(() => import("./components/ArchiveLabelModal"));
 const TechnicalModelViewer = lazy(() => import("./components/TechnicalModelViewer"));
@@ -172,7 +177,7 @@ const itemResourceMap = {
   "Nhập liệu hồ sơ phân bổ": "assignments",
   "Tìm kiếm hồ sơ theo từ gợi nhớ": "dossiers",
   "Tìm kiếm hồ sơ theo điều kiện": "dossiers",
-  "Xác nhận hồ sơ xuất bản": "publish-requests",
+  "Xác nhận hồ sơ xuất bản": "approval",
   "Hủy xác nhận xuất bản hồ sơ": "publish-requests",
   "Nhận xét hồ sơ": "approval-tickets",
   "Hồ sơ không hợp lệ": "invalid-records",
@@ -356,208 +361,6 @@ function mergeMenuWithDesign(groups) {
 }
 
 
-
-function ApprovalScreen({ title }) {
-  const [rows, setRows] = useState([]);
-  const [error, setError] = useState("");
-  const [selectedId, setSelectedId] = useState(null);
-  const [showSignModal, setShowSignModal] = useState(false);
-  const [signPin, setSignPin] = useState("");
-  const [signCert, setSignCert] = useState("VNPT CA");
-  const [signOtp, setSignOtp] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [viewDoc, setViewDoc] = useState(null);
-  const [signHistory, setSignHistory] = useState([]);
-
-  useEffect(() => {
-    uiApi.gd2.workflowItems()
-      .then(data => setRows(data.filter(d => ["PENDING", "DRAFT", "APPROVED"].includes(d.status))))
-      .catch(e => setError(e.message));
-  }, []);
-
-  const handleStatusChange = async (id, newStatus) => {
-    try {
-      const dossierRow = rows.find(r => r.id === id);
-      const action = newStatus === "REJECTED" ? "REJECT" : "APPROVE";
-      const result = await uiApi.gd2.transition({
-        entityType: "DOSSIER",
-        entityId: id,
-        action,
-        actor: "current-user",
-        unitCode: "DEFAULT",
-        comment: action === "REJECT" ? "Từ chối hồ sơ" : "Phê duyệt hồ sơ",
-        recipient: dossierRow?.code,
-      });
-      alert(`Đã chuyển trạng thái hồ sơ sang ${result.currentStatus}`);
-      setRows(rows.filter(r => r.id !== id));
-    } catch (e) {
-      alert("Lỗi: " + e.message);
-    }
-  };
-
-  const handleSendOtp = () => {
-    setOtpSent(true);
-    alert("OTP đã được gửi về số điện thoại đã đăng ký: ***6789");
-  };
-
-  const handleSignConfirm = async () => {
-    if (!signPin) {
-      alert("Vui lòng nhập mã PIN");
-      return;
-    }
-
-    setShowSignModal(false);
-    if (!selectedId) return;
-
-    try {
-      const dossierRow = rows.find(r => r.id === selectedId);
-      if (!dossierRow) return;
-
-      if (dossierRow.status !== "APPROVED") {
-        await uiApi.gd2.transition({
-          entityType: "DOSSIER",
-          entityId: selectedId,
-          action: "APPROVE",
-          actor: "current-user",
-          unitCode: "DEFAULT",
-          comment: "Phê duyệt trước khi ký số",
-          recipient: dossierRow.code,
-        });
-      }
-
-      const result = await uiApi.gd2.transition({
-        entityType: "DOSSIER",
-        entityId: selectedId,
-        action: "SIGN",
-        actor: "current-user",
-        unitCode: "DEFAULT",
-        comment: `Ký số bằng ${signCert}`,
-        recipient: dossierRow.code,
-      });
-
-      const ts = new Date().toLocaleString("vi-VN");
-      setSignHistory(prev => [{ id: selectedId, cert: signCert, ts, code: dossierRow?.code }, ...prev]);
-      alert(`Đã ký số & ban hành hồ sơ thành công!\nTrạng thái: ${result.currentStatus}\nChứng thư: ${signCert}\nThời gian: ${ts}`);
-      setRows(rows.filter(r => r.id !== selectedId));
-      setSignPin("");
-      setSignOtp("");
-      setOtpSent(false);
-    } catch (e) {
-      alert("Lỗi: " + e.message);
-    }
-  };
-
-  return (
-    <section className="panel">
-      <PanelTitle icon={<CheckCircle2 />} title={title || "Kiểm duyệt hồ sơ xuất bản"} />
-      {error && <div className="alert">{error}</div>}
-
-      {signHistory.length > 0 && (
-        <div className="sign-history-bar">
-          <strong><PenTool size={14} /> Lịch sử ký số gần đây:</strong>
-          {signHistory.slice(0, 3).map((h, i) => (
-            <span key={i} className="sign-history-item">HS#{h.code} – {h.cert} – {h.ts}</span>
-          ))}
-        </div>
-      )}
-
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Mã HS</th><th>Tên HS</th><th>Loại</th><th>Trạng thái</th><th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(row => (
-              <tr key={row.id}>
-                <td><strong>{row.code}</strong></td>
-                <td>{row.title}</td>
-                <td>{row.dossierType || "—"}</td>
-                <td><StatusBadge status={row.status} /></td>
-                <td>
-                  <button className="btn ok" style={{ marginRight: 4 }} onClick={() => handleStatusChange(row.id, "APPROVED")}>✓ Duyệt</button>
-                  <button className="btn warn" style={{ marginRight: 4 }} onClick={() => handleStatusChange(row.id, "REJECTED")}>✕ Từ chối</button>
-                  <button className="btn primary" style={{ marginRight: 4 }} onClick={() => { setSelectedId(row.id); setShowSignModal(true); }}><PenTool size={13}/> Ký số</button>
-                  <button className="icon-btn" onClick={() => setViewDoc(row)} title="Xem chi tiết"><Eye size={14}/></button>
-                </td>
-              </tr>
-            ))}
-            {rows.length === 0 && <tr><td colSpan="5" className="empty-cell">Không có hồ sơ nào chờ duyệt.</td></tr>}
-          </tbody>
-        </table>
-      </div>
-
-      {showSignModal && (
-        <div className="modal-overlay" onClick={() => setShowSignModal(false)}>
-          <div className="modal-content sign-modal" onClick={event => event.stopPropagation()}>
-            <div className="modal-header">
-              <div className="modal-icon-wrap sign-icon"><PenTool size={22} color="#fff"/></div>
-              <div>
-                <h3>Ký số &amp; Ban hành hồ sơ</h3>
-                <p className="muted">Xác thực danh tính trước khi ký số chính thức</p>
-              </div>
-            </div>
-            <div className="field" style={{ marginTop: 16 }}>
-              <span>Chứng thư số</span>
-              <select value={signCert} onChange={event => setSignCert(event.target.value)}>
-                <option value="VNPT CA">USB Token – VNPT CA</option>
-                <option value="Viettel CA">USB Token – Viettel CA</option>
-                <option value="HSM">Máy chủ HSM Doanh nghiệp</option>
-                <option value="SmartSign">SmartSign Mobile</option>
-              </select>
-            </div>
-            <div className="field">
-              <span>Mã PIN chứng thư</span>
-              <input type="password" value={signPin} onChange={event => setSignPin(event.target.value)} placeholder="Nhập mã PIN..." />
-            </div>
-            <div className="field">
-              <span>Xác thực OTP (tùy chọn)</span>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input type="text" value={signOtp} onChange={event => setSignOtp(event.target.value)} placeholder={otpSent ? "Nhập mã OTP..." : "Chưa gửi OTP"} style={{ flex: 1 }} />
-                <button className="btn primary" type="button" onClick={handleSendOtp} style={{ whiteSpace: "nowrap" }}>
-                  {otpSent ? "Gửi lại" : "Gửi OTP"}
-                </button>
-              </div>
-            </div>
-            <div className="sign-cert-info">
-              <Lock size={13}/> Thông tin chứng thư: <strong>{signCert}</strong> – Hiệu lực đến 31/12/2026
-            </div>
-            <div className="modal-actions" style={{ marginTop: 20 }}>
-              <button className="btn primary" onClick={handleSignConfirm}><PenTool size={14}/> Xác nhận Ký số</button>
-              <button className="btn" onClick={() => { setShowSignModal(false); setSignPin(""); setSignOtp(""); setOtpSent(false); }}>Hủy</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {viewDoc && (
-        <div className="modal-overlay" onClick={() => setViewDoc(null)}>
-          <div className="modal-content" onClick={event => event.stopPropagation()} style={{ maxWidth: 560 }}>
-            <div className="modal-header">
-              <div className="modal-icon-wrap" style={{ background: "#0ea5e9" }}><Eye size={22} color="#fff"/></div>
-              <div>
-                <h3>Chi tiết hồ sơ #{viewDoc.code}</h3>
-                <p className="muted">Xem thông tin và lịch sử xử lý</p>
-              </div>
-            </div>
-            <div className="detail-grid" style={{ marginTop: 16 }}>
-              <div className="detail-row"><span>Mã hồ sơ</span><strong>{viewDoc.code}</strong></div>
-              <div className="detail-row"><span>Tên hồ sơ</span><strong>{viewDoc.title}</strong></div>
-              <div className="detail-row"><span>Loại hồ sơ</span><strong>{viewDoc.dossierType || "—"}</strong></div>
-              <div className="detail-row"><span>Trạng thái</span><StatusBadge status={viewDoc.status}/></div>
-              <div className="detail-row"><span>Mô tả</span><span>{viewDoc.description || "Chưa có mô tả"}</span></div>
-            </div>
-            <div className="modal-actions" style={{ marginTop: 20 }}>
-              <button className="btn primary" onClick={() => { setSelectedId(viewDoc.id); setViewDoc(null); setShowSignModal(true); }}>Ký số ngay</button>
-              <button className="btn" onClick={() => setViewDoc(null)}>Đóng</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </section>
-  );
-}
 
 function PermissionScreen({ title }) {
   const crud = useCrud("permission-groups", emptySimple);
@@ -2562,6 +2365,36 @@ function notificationChannelIcon(channel) {
   return <Bell size={13}/>;
 }
 
+function getPermittedMenuGroups(rawMenu, user) {
+  if (!user || !rawMenu?.length) return rawMenu || [];
+  const role = (user.roleCode || user.role || "").toUpperCase();
+
+  // Admin / System Admin sees all modules
+  if (role === "ADMIN" || role === "SYSTEM_ADMIN") {
+    return rawMenu;
+  }
+
+  // Data Entry: Nhập liệu, Danh mục, Tìm kiếm
+  if (role === "DATA_ENTRY") {
+    const allowed = ["Nhập liệu", "Danh mục", "Tìm kiếm"];
+    return rawMenu.filter(g => allowed.includes(g.title));
+  }
+
+  // Approver / Reviewer / Manager: Kiểm duyệt, Duyệt phiếu, Khai thác, Tìm kiếm, Báo cáo
+  if (role === "APPROVER" || role === "REVIEWER" || role === "MANAGER") {
+    const allowed = ["Kiểm duyệt", "Duyệt phiếu", "Khai thác", "Tìm kiếm", "Báo cáo"];
+    return rawMenu.filter(g => allowed.includes(g.title));
+  }
+
+  // Public / Citizen / Viewer: Khai thác, Tìm kiếm
+  if (role === "PUBLIC" || role === "VIEWER") {
+    const allowed = ["Khai thác", "Tìm kiếm"];
+    return rawMenu.filter(g => allowed.includes(g.title));
+  }
+
+  return rawMenu;
+}
+
 function initialMenuSelection() {
   const requestedItem = new URLSearchParams(window.location.search).get("screen");
   const requestedGroup = designMenuGroups.find(group => group.items.includes(requestedItem));
@@ -2581,6 +2414,22 @@ export default function App() {
   const [activeItem, setActiveItem] = useState(initialSelection.item);
   const [message, setMessage] = useState("");
   const [workflowHandoff, setWorkflowHandoff] = useState(null);
+
+  const permittedMenu = useMemo(() => {
+    return getPermittedMenuGroups(menu, currentUser);
+  }, [menu, currentUser]);
+
+  useEffect(() => {
+    if (!permittedMenu.length) return;
+    const currentGroupPermitted = permittedMenu.find(g => g.title === activeGroup);
+    if (!currentGroupPermitted) {
+      const defaultGroup = permittedMenu[0];
+      setActiveGroup(defaultGroup.title);
+      setActiveItem(defaultGroup.items[0]);
+    } else if (!currentGroupPermitted.items.includes(activeItem)) {
+      setActiveItem(currentGroupPermitted.items[0]);
+    }
+  }, [permittedMenu, activeGroup, activeItem]);
 
   useEffect(() => {
     let active = true;
@@ -2722,13 +2571,31 @@ export default function App() {
           <button className="btn" type="button" onClick={() => window.print()}><Download size={16}/> In / xuất PDF</button>
           <button className="btn" type="button" onClick={() => window.location.reload()}><RefreshCw size={16}/> Làm mới</button>
           <button className="btn db-action" type="button" onClick={initializeDatabase}><Database size={16}/> Khởi tạo DB</button>
-          {!authBypassEnabled && <button className="btn logout-action" type="button" onClick={handleLogout}><LogOut size={16}/> Đăng xuất</button>}
+          {!authBypassEnabled && (
+            <button
+              className="btn logout-action"
+              type="button"
+              onClick={handleLogout}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                background: "#fee2e2",
+                color: "#b91c1c",
+                borderColor: "#fca5a5",
+                fontWeight: 600,
+                cursor: "pointer"
+              }}
+            >
+              <LogOut size={16}/> Đăng xuất
+            </button>
+          )}
         </div>
       </header>
 
       <nav className="top-menu" aria-label="Điều hướng chức năng">
         <div className="top-menu-inner">
-          {menu.map((group) => (
+          {permittedMenu.map((group) => (
             <section className="side-group" key={group.title}>
               <button
                 className={activeGroup === group.title ? "group-title active" : "group-title"}
@@ -9789,498 +9656,6 @@ function GD2BusinessWorkspaceScreen({ title, feature = "GD2" }) {
   );
 }
 
-function StorageScreen() {
-  const crud = useCrud("storage", emptyStorage);
-  const [filterType, setFilterType] = useState("ALL");
-  const [keyword, setKeyword] = useState(() => new URLSearchParams(window.location.search).get("q") || "");
-  const [labelItem, setLabelItem] = useState(null);
-  const type = crud.form.locationType || "KHO";
-  const typeMeta = {
-    KHO: { label: "Kho", parent: null, parentLabel: "", color: "blue" },
-    KE: { label: "Kệ", parent: "KHO", parentLabel: "Kho trực thuộc", color: "violet" },
-    TANG: { label: "Tầng", parent: "KE", parentLabel: "Kệ trực thuộc", color: "amber" },
-    HOP: { label: "Hộp", parent: "TANG", parentLabel: "Tầng trực thuộc", color: "green" }
-  };
-  const rowById = useMemo(() => new Map(crud.rows.map(row => [Number(row.id), row])), [crud.rows]);
-  const parentOptions = useMemo(
-    () => crud.rows.filter(row => row.locationType === typeMeta[type].parent),
-    [crud.rows, type]
-  );
-  const visibleRows = useMemo(() => {
-    const normalizedKeyword = keyword.trim().toLowerCase();
-    return crud.rows.filter(row => {
-      const matchesType = filterType === "ALL" || row.locationType === filterType;
-      const matchesKeyword = !normalizedKeyword || `${row.code} ${row.name}`.toLowerCase().includes(normalizedKeyword);
-      return matchesType && matchesKeyword;
-    });
-  }, [crud.rows, filterType, keyword]);
-
-  function hierarchyPath(row) {
-    const path = [];
-    const visited = new Set();
-    let current = row;
-    while (current && !visited.has(Number(current.id))) {
-      visited.add(Number(current.id));
-      path.unshift(current.name);
-      current = rowById.get(Number(current.parentId));
-    }
-    return path.join(" / ");
-  }
-
-  function selectLocationType(nextType) {
-    setFilterType(nextType);
-    crud.setField("locationType", nextType);
-    crud.setField("parentId", "");
-  }
-
-  function editStorage(row) {
-    crud.edit(row);
-    setFilterType(row.locationType || "ALL");
-  }
-
-  function openBoxLabel(row) {
-    setLabelItem({
-      entityType: "BOX",
-      id: row.id,
-      code: row.code,
-      name: row.name,
-      location: hierarchyPath(row),
-      createdAt: row.createdAt
-    });
-  }
-
-  return (
-    <section className="panel storage-management">
-      <div className="storage-heading">
-        <PanelTitle icon={<Archive />} title="Danh mục Kho - Kệ - Tầng - Hộp" />
-        <p>Thiết lập đúng cây vị trí vật lý để hồ sơ, tài liệu OCR được lưu và tra cứu theo từng cấp.</p>
-      </div>
-
-      <div className="storage-type-grid">
-        {Object.entries(typeMeta).map(([key, meta]) => {
-          const count = crud.rows.filter(row => row.locationType === key).length;
-          return (
-            <button key={key} type="button" className={`storage-type-card ${meta.color} ${filterType === key ? "active" : ""}`} onClick={() => selectLocationType(key)}>
-              <span>{key === "KHO" ? <Archive size={20}/> : <Layers3 size={20}/>}</span>
-              <strong>{count}</strong>
-              <small>{meta.label} lưu trữ</small>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="storage-toolbar">
-        <div className="storage-search"><Search size={16}/><input value={keyword} onChange={event => setKeyword(event.target.value)} placeholder="Tìm theo mã hoặc tên vị trí..." /></div>
-        <select value={filterType} onChange={event => setFilterType(event.target.value)}>
-          <option value="ALL">Tất cả cấp lưu trữ</option>
-          {Object.entries(typeMeta).map(([key, meta]) => <option key={key} value={key}>{meta.label}</option>)}
-        </select>
-        <button className="btn" type="button" onClick={crud.load}><RefreshCw size={15}/> Tải lại</button>
-      </div>
-
-      <div className="storage-workspace">
-        <form className="storage-form" onSubmit={crud.save}>
-          <div className="storage-form-title">
-            <span>{crud.form.id ? "Chỉnh sửa vị trí lưu trữ" : `Thêm ${typeMeta[type].label.toLowerCase()} mới`}</span>
-            <small>Cấu trúc: Kho → Kệ → Tầng → Hộp</small>
-          </div>
-          <label className="field required">
-            <span>Loại vị trí</span>
-            <select value={type} onChange={event => { crud.setField("locationType", event.target.value); crud.setField("parentId", ""); }}>
-              {Object.entries(typeMeta).map(([key, meta]) => <option key={key} value={key}>{meta.label}</option>)}
-            </select>
-          </label>
-          {typeMeta[type].parent && (
-            <label className="field required">
-              <span>{typeMeta[type].parentLabel}</span>
-              <select value={crud.form.parentId || ""} onChange={event => crud.setField("parentId", event.target.value)} required>
-                <option value="">-- Chọn {typeMeta[type].parentLabel.toLowerCase()} --</option>
-                {parentOptions.map(row => <option key={row.id} value={row.id}>{row.code} - {hierarchyPath(row)}</option>)}
-              </select>
-              {!parentOptions.length && <small className="storage-field-note">Cần tạo {typeMeta[typeMeta[type].parent].label.toLowerCase()} cha trước.</small>}
-            </label>
-          )}
-          <label className="field required"><span>Mã {typeMeta[type].label.toLowerCase()}</span><input value={crud.form.code || ""} onChange={event => crud.setField("code", event.target.value)} required placeholder={`Ví dụ: ${type}-01`} /></label>
-          <label className="field required"><span>Tên {typeMeta[type].label.toLowerCase()}</span><input value={crud.form.name || ""} onChange={event => crud.setField("name", event.target.value)} required /></label>
-          <label className="field"><span>Sức chứa dự kiến</span><input type="number" min="0" value={crud.form.capacity || ""} onChange={event => crud.setField("capacity", event.target.value)} placeholder="Số hồ sơ / tài liệu" /></label>
-          <label className="field"><span>Trạng thái</span><select value={crud.form.status || "ACTIVE"} onChange={event => crud.setField("status", event.target.value)}><option value="ACTIVE">Đang hoạt động</option><option value="INACTIVE">Ngừng hoạt động</option></select></label>
-          <div className="form-actions">
-            <button className="btn primary" type="submit"><Save size={15}/> {crud.form.id ? "Cập nhật" : "Thêm mới"}</button>
-            <button className="btn" type="button" onClick={crud.reset}><X size={15}/> Bỏ qua</button>
-          </div>
-          {crud.error && <div className="alert">{crud.error}</div>}
-        </form>
-
-        <div className="storage-table-panel">
-          <div className="storage-list-title"><strong>Cây vị trí lưu trữ</strong><span>{visibleRows.length} / {crud.rows.length} vị trí</span></div>
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>Loại</th><th>Mã</th><th>Đường dẫn vị trí</th><th>Sức chứa</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
-              <tbody>
-                {visibleRows.map(row => (
-                  <tr key={row.id}>
-                    <td><span className={`storage-kind ${typeMeta[row.locationType]?.color || "blue"}`}>{typeMeta[row.locationType]?.label || row.locationType}</span></td>
-                    <td><span className="gd2-code">{row.code}</span></td>
-                    <td><strong>{hierarchyPath(row)}</strong>{row.parentId && <small className="storage-parent">Cấp cha: {rowById.get(Number(row.parentId))?.code || row.parentId}</small>}</td>
-                    <td>{row.capacity || 0}</td>
-                    <td><StatusBadge status={row.status || "ACTIVE"}/></td>
-                    <td>
-                      {row.locationType === "HOP" && <button className="icon-btn label-action" type="button" onClick={() => openBoxLabel(row)} title="In Mã Vạch / QR Code"><QrCode size={14}/></button>}
-                      <button className="icon-btn primary" type="button" onClick={() => editStorage(row)} title="Sửa"><Edit size={14}/></button>
-                      <button className="icon-btn danger" type="button" onClick={() => crud.remove(row.id)} title="Xóa"><Trash2 size={14}/></button>
-                    </td>
-                  </tr>
-                ))}
-                {!visibleRows.length && <tr><td colSpan={6} className="empty-cell">Chưa có vị trí phù hợp. Hãy tạo theo thứ tự Kho → Kệ → Tầng → Hộp.</td></tr>}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      {labelItem && <Suspense fallback={null}><ArchiveLabelModal item={labelItem} onClose={() => setLabelItem(null)} /></Suspense>}
-    </section>
-  );
-}
-
-function DossierScreen({ mode }) {
-  const storageCrud = useCrud("storage", emptyStorage);
-  const [dossiers, setDossiers] = useState([]);
-  const [documents, setDocuments] = useState([]);
-  const [notice, setNotice] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [pendingFile, setPendingFile] = useState(null);
-  const [fileInputKey, setFileInputKey] = useState(0);
-  const [uploadPolicy, setUploadPolicy] = useState({ maxBytes: 25 * 1024 * 1024, maxMegabytes: 25, technicalModelMaxBytes: 200 * 1024 * 1024, technicalModelMaxMegabytes: 200 });
-  const fileInputRef = useRef(null);
-  const [form, setForm] = useState({
-    storageId: "",
-    title: "",
-    documentType: "QUYET_DINH",
-    status: "DRAFT",
-    engine: "gemini"
-  });
-
-  const storageById = useMemo(
-    () => new Map(storageCrud.rows.map(row => [Number(row.id), row])),
-    [storageCrud.rows]
-  );
-  const storageOptions = useMemo(() => {
-    const typeLabel = { KHO: "Kho", KE: "Kệ", TANG: "Tầng", HOP: "Hộp" };
-    const pathOf = row => {
-      const path = [];
-      const visited = new Set();
-      let current = row;
-      while (current && !visited.has(Number(current.id))) {
-        visited.add(Number(current.id));
-        path.unshift(current.name);
-        current = storageById.get(Number(current.parentId));
-      }
-      return path.join(" / ");
-    };
-    return storageCrud.rows
-      .filter(row => String(row.status || "ACTIVE").toUpperCase() === "ACTIVE")
-      .map(row => ({
-        value: String(row.id),
-        label: `${typeLabel[row.locationType] || row.locationType}: ${pathOf(row)} (${row.code})`
-      }));
-  }, [storageCrud.rows, storageById]);
-  const dossierById = useMemo(
-    () => new Map(dossiers.map(row => [Number(row.id), row])),
-    [dossiers]
-  );
-
-  useEffect(() => {
-    runSearch();
-    uiApi.crud("documents").uploadPolicy("DEFAULT")
-      .then(setUploadPolicy)
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (!form.storageId && storageOptions.length) {
-      setField("storageId", storageOptions[0].value);
-    }
-  }, [storageOptions, form.storageId]);
-
-  async function runSearch() {
-    try {
-      const [dossierResult, documentResult] = await Promise.all([
-        uiApi.crud("dossiers").list(),
-        uiApi.crud("documents").list()
-      ]);
-      setDossiers(Array.isArray(dossierResult) ? dossierResult : (dossierResult?.items || []));
-      const rows = Array.isArray(documentResult) ? documentResult : (documentResult?.items || []);
-      setDocuments([...rows].sort((left, right) => Number(right.id) - Number(left.id)));
-    } catch (e) {
-      setNotice({ type: "error", text: "Không tải được danh sách tài liệu." });
-    }
-  }
-
-  async function loadTree() {
-    await storageCrud.load();
-  }
-
-  function setField(key, value) { setForm(current => ({ ...current, [key]: value })); }
-
-  function handleFileChange(event) {
-    const file = event.target.files?.[0] || null;
-    const fileLimit = isTechnicalModelFile(file?.name) ? uploadPolicy.technicalModelMaxBytes : uploadPolicy.maxBytes;
-    const fileLimitMb = isTechnicalModelFile(file?.name) ? uploadPolicy.technicalModelMaxMegabytes : uploadPolicy.maxMegabytes;
-    if (file && file.size > fileLimit) {
-      setPendingFile(null);
-      event.target.value = "";
-      setNotice({ type: "error", text: `Tệp vượt hạn mức tải lên (${fileLimitMb} MB).` });
-      return;
-    }
-    setPendingFile(file);
-    setNotice(null);
-    if (file && !form.title.trim()) {
-      setField("title", file.name.replace(/\.[^.]+$/, ""));
-    }
-  }
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-    if (!form.storageId || !form.title.trim()) {
-      setNotice({ type: "error", text: "Vui lòng chọn kho lưu trữ và nhập tên tài liệu." });
-      return;
-    }
-    const pendingLimit = isTechnicalModelFile(pendingFile?.name) ? uploadPolicy.technicalModelMaxBytes : uploadPolicy.maxBytes;
-    const pendingLimitMb = isTechnicalModelFile(pendingFile?.name) ? uploadPolicy.technicalModelMaxMegabytes : uploadPolicy.maxMegabytes;
-    if (pendingFile && pendingFile.size > pendingLimit) {
-      setNotice({ type: "error", text: `Tệp vượt hạn mức tải lên (${pendingLimitMb} MB).` });
-      return;
-    }
-    setLoading(true);
-    setNotice(null);
-    try {
-      const result = await uiApi.crud("documents").quickUpload({
-        storageId: Number(form.storageId),
-        file: pendingFile,
-        title: form.title.trim(),
-        documentType: form.documentType,
-        status: form.status,
-        engine: form.engine,
-        unitCode: "DEFAULT"
-      });
-      setNotice({ type: "success", text: result?.message || `Đã lưu tài liệu ${form.title.trim()} vào kho thành công!` });
-      resetForm();
-      await Promise.all([loadTree(), runSearch()]);
-    } catch (e) {
-      setNotice({ type: "error", text: `Lỗi: ${e.message}` });
-    } finally { setLoading(false); }
-  }
-
-  async function removeDocument(id) {
-    if (!window.confirm("Xóa tài liệu này?")) return;
-    try { await uiApi.crud("documents").remove(id); await runSearch(); }
-    catch (e) { setNotice({ type: "error", text: `Lỗi xóa: ${e.message}` }); }
-  }
-
-  function resetForm() {
-    setForm(current => ({
-      storageId: current.storageId || storageOptions[0]?.value || "",
-      title: "",
-      documentType: "QUYET_DINH",
-      status: "DRAFT",
-      engine: "gemini"
-    }));
-    setPendingFile(null);
-    setFileInputKey(key => key + 1);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  }
-
-  return (
-    <div className="all-in-one-screen">
-      <section className="panel upload-panel">
-        <PanelTitle icon={<Upload />} title="Thêm mới & Tải lên tài liệu vào Kho" />
-        <form onSubmit={handleSubmit} className="all-in-one-upload-form">
-          <label className="field required upload-storage-field">
-            <span>Kho lưu trữ</span>
-            <select value={form.storageId} onChange={e => setField("storageId", e.target.value)} required>
-              <option value="">{storageOptions.length ? "Chọn Kho / Kệ / Hộp" : "Chưa có kho đang hoạt động"}</option>
-              {storageOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-            </select>
-          </label>
-          <label className="field required upload-title-field">
-            <span>Tên tài liệu</span>
-            <input value={form.title} onChange={e => setField("title", e.target.value)} placeholder="Nhập tên văn bản" required />
-          </label>
-          <label className="field">
-            <span>Loại tài liệu</span>
-            <select value={form.documentType} onChange={e => setField("documentType", e.target.value)}>
-              <option value="QUYET_DINH">Quyết định</option>
-              <option value="TO_TRINH">Tờ trình</option>
-              <option value="HOP_DONG">Hợp đồng</option>
-              <option value="CONG_VAN">Công văn</option>
-              <option value="BAN_VE">Bản vẽ</option>
-              <option value="KHAC">Khác</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>Trạng thái</span>
-            <select value={form.status} onChange={e => setField("status", e.target.value)}>
-              <option value="DRAFT">Dự thảo (DRAFT)</option>
-              <option value="PENDING">Chờ duyệt (PENDING)</option>
-              <option value="ACTIVE">Hoạt động (ACTIVE)</option>
-            </select>
-          </label>
-          <label className="field upload-file-field">
-            <span>Đính kèm tệp</span>
-            <div className="upload-file-picker">
-              <input key={fileInputKey} ref={fileInputRef} type="file" accept=".pdf,.docx,.tif,.tiff,.png,.jpg,.jpeg,.ifc,.stl,.obj,.step,.stp" onChange={handleFileChange} />
-              <small>{pendingFile ? `${pendingFile.name} · ${(pendingFile.size / 1024 / 1024).toFixed(2)} MB` : `PDF/ảnh/văn bản hoặc IFC/STL/OBJ/STEP · mô hình tối đa ${uploadPolicy.technicalModelMaxMegabytes} MB`}</small>
-            </div>
-          </label>
-          <label className="field">
-            <span>Engine OCR</span>
-            <select value={form.engine} onChange={e => setField("engine", e.target.value)}>
-              <option value="gemini">Gemini Vision AI</option>
-              <option value="vietocr">VietOCR</option>
-              <option value="easyocr">EasyOCR</option>
-              <option value="tesseract">Tesseract</option>
-            </select>
-          </label>
-          <div className="form-actions all-in-one-actions">
-            <button className="btn primary" type="submit" disabled={loading}><Upload size={16} /> {loading ? "Đang lưu & bóc tách..." : "Lưu & Tải lên"}</button>
-            <button className="btn" type="button" onClick={resetForm} disabled={loading}><X size={16} /> Bỏ qua</button>
-          </div>
-        </form>
-        {notice && <div className={`upload-toast ${notice.type}`} role="status"><span>{notice.text}</span><button type="button" onClick={() => setNotice(null)} aria-label="Đóng thông báo"><X size={15} /></button></div>}
-        <div className="table-wrap" style={{ marginTop: "16px" }}>
-          <table>
-            <thead><tr><th>Mã tài liệu</th><th>Tên tài liệu</th><th>Loại</th><th>Kho / Hồ sơ</th><th>Tệp</th><th>OCR</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
-            <tbody>
-              {documents.length === 0 ? (
-                <tr><td colSpan={8} className="empty-cell">Chưa có tài liệu. Nhập thông tin và nhấn “Lưu & Tải lên”.</td></tr>
-              ) : documents.map(row => {
-                const dossier = dossierById.get(Number(row.dossierId));
-                const storage = storageById.get(Number(dossier?.storageId));
-                return (
-                <tr key={row.id}>
-                  <td><span className="gd2-code">{row.code}</span></td>
-                  <td>{row.title}</td>
-                  <td>{dossier?.dossierType || "Khác"}</td>
-                  <td>{storage ? `${storage.code} · ${storage.name}` : dossier?.storageId || "-"}<small className="upload-dossier-code">{dossier?.code}</small></td>
-                  <td>{row.fileName ? <span className="file-attached">Đã tải lên</span> : <span className="file-missing">Chưa có tệp</span>}</td>
-                  <td><OcrBadge status={row.ocrStatus || "PENDING"} /></td>
-                  <td><StatusBadge status={row.status || "DRAFT"} /></td>
-                  <td><button className="icon-btn danger" onClick={() => removeDocument(row.id)} title="Xóa"><Trash2 size={14} /></button></td>
-                </tr>
-              );})}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </div>
-  );
-}
-function DocumentPanel() {
-  const crud = useCrud("documents", emptyDocument);
-  const dossiers = useCrud("dossiers", emptyDossier);
-  const dossierOptions = useMemo(
-    () => dossiers.rows.map((row) => ({
-      value: String(row.id),
-      label: `${row.code} - ${row.title}`
-    })),
-    [dossiers.rows]
-  );
-  const dossierById = useMemo(
-    () => new Map(dossiers.rows.map((row) => [Number(row.id), row])),
-    [dossiers.rows]
-  );
-  const formatDossier = (value) => {
-    const dossier = dossierById.get(Number(value));
-    return dossier ? `${dossier.code} - ${dossier.title}` : `Hồ sơ #${value}`;
-  };
-
-  return (
-    <CrudScreen
-      compact
-      title="Tài liệu/OCR"
-      icon={<FileText />}
-      crud={crud}
-      columns={[
-        ["dossierId", "Hồ sơ", formatDossier],
-        ["code", "Mã"],
-        ["title", "Tên tài liệu"],
-        ["ocrStatus", "OCR"],
-        ["status", "Trạng thái"]
-      ]}
-      fields={[
-        {
-          key: "dossierId",
-          label: "Hồ sơ",
-          type: "select",
-          required: true,
-          placeholder: dossiers.rows.length ? "Chọn hồ sơ" : "Chưa có hồ sơ trong DB",
-          options: dossierOptions
-        },
-        { key: "code", label: "Mã tài liệu", required: true },
-        { key: "title", label: "Tên tài liệu", required: true },
-        { key: "fileName", label: "File tài liệu (PDF/Ảnh đính kèm)", type: "file" },
-        { key: "ocrStatus", label: "OCR", type: "select", options: ["PENDING", "PROCESSING", "DONE", "ERROR"] },
-        { key: "status", label: "Trạng thái", type: "select", options: ["DRAFT", "VALID", "INVALID"] }
-      ]}
-    />
-  );
-}
-
-function SearchScreen() {
-  const crud = useCrud("dossiers", emptyDossier);
-  const storageCrud = useCrud("storage", emptyStorage);
-  const [keyword, setKeyword] = useState(() => new URLSearchParams(window.location.search).get("q") || "");
-  const [labelItem, setLabelItem] = useState(null);
-  const storageById = useMemo(
-    () => new Map(storageCrud.rows.map(row => [Number(row.id), row])),
-    [storageCrud.rows]
-  );
-  const rows = useMemo(() => {
-    if (!keyword) return crud.rows;
-    const k = keyword.toLowerCase();
-    return crud.rows.filter((row) => `${row.code} ${row.title} ${row.dossierType}`.toLowerCase().includes(k));
-  }, [crud.rows, keyword]);
-
-  function storagePath(storageId) {
-    const path = [];
-    const visited = new Set();
-    let current = storageById.get(Number(storageId));
-    while (current && !visited.has(Number(current.id))) {
-      visited.add(Number(current.id));
-      path.unshift(`${current.code} · ${current.name}`);
-      current = storageById.get(Number(current.parentId));
-    }
-    return path.join(" / ") || "Chưa xác định vị trí";
-  }
-
-  function openDossierLabel(row) {
-    setLabelItem({
-      entityType: "DOSSIER",
-      id: row.id,
-      code: row.code,
-      name: row.title,
-      location: storagePath(row.storageId),
-      createdAt: row.createdAt || row.fromDate
-    });
-  }
-
-  return (
-    <section className="panel">
-      <PanelTitle icon={<Search />} title="Tra cứu hồ sơ" />
-      <div className="search-strip">
-        <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="Nhập mã, tên, loại hồ sơ..." />
-        <button className="btn primary">
-          <Search size={16} /> Tìm kiếm
-        </button>
-      </div>
-      <DataTable rows={rows} columns={[["code", "Mã hồ sơ"], ["title", "Tên hồ sơ"], ["dossierType", "Loại"], ["status", "Trạng thái"]]} onLabel={openDossierLabel} onEdit={crud.edit} onDelete={crud.remove} />
-      {labelItem && <Suspense fallback={null}><ArchiveLabelModal item={labelItem} onClose={() => setLabelItem(null)} /></Suspense>}
-    </section>
-  );
-}
-
-
-
 function BorrowScreen() {
   const crud = useCrud("borrow", emptyBorrow);
   const dossiers = useCrud("dossiers", emptyDossier);
@@ -10533,36 +9908,6 @@ function calculateImportProgress(job) {
 function formatBatchFileSize(bytes) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
-
-function SimpleResourceScreen({ title, resource, group }) {
-  const crud = useCrud(resource, emptySimple);
-  return (
-    <CrudScreen
-      title={title}
-      icon={iconFor(group)}
-      crud={crud}
-      columns={[
-        ["code", "Mã"],
-        ["name", "Tên"],
-        ["parentId", "ID cha"],
-        ["status", "Trạng thái"],
-        ["extra1", "Thông tin 1"],
-        ["extra2", "Thông tin 2"]
-      ]}
-      fields={[
-        { key: "code", label: "Mã", required: true },
-        { key: "name", label: "Tên", required: true },
-        { key: "parentId", label: "ID cha", type: "number" },
-        { key: "status", label: "Trạng thái", type: "select", options: ["ACTIVE", "INACTIVE", "PENDING", "APPROVED", "REJECTED"] },
-        { key: "description", label: "Mô tả", type: "textarea" },
-        { key: "extra1", label: extraLabel1(resource) },
-        { key: "extra2", label: extraLabel2(resource) },
-        { key: "date1", label: "Từ ngày", type: "date" },
-        { key: "date2", label: "Đến ngày", type: "date" }
-      ]}
-    />
-  );
 }
 
 function ReportCrudScreen() {

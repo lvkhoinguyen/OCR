@@ -562,6 +562,114 @@ public sealed class OracleDmsService
     public Task<int> DeleteStorageLocationAsync(long id) =>
         ExecuteAsync("DELETE FROM DMS_STORAGE_LOCATIONS WHERE ID=:id", P("id", id));
 
+    public async Task<AutoGenerateStorageResult> AutoGenerateStorageAsync(AutoGenerateStorageRequest request)
+    {
+        if (request.WarehouseId <= 0)
+            throw new BusinessRuleException("Vui lòng chọn Kho lưu trữ.");
+
+        if (request.FloorCount <= 0 || request.FloorCount > 50)
+            throw new BusinessRuleException("Số tầng phải từ 1 đến 50 tầng.");
+
+        if (request.BoxesPerFloor <= 0 || request.BoxesPerFloor > 100)
+            throw new BusinessRuleException("Số hộp mỗi tầng phải từ 1 đến 100 hộp.");
+
+        if (request.BoxCapacity <= 0 || request.BoxCapacity > 1000)
+            throw new BusinessRuleException("Sức chứa mỗi hộp phải từ 1 đến 1000 hồ sơ.");
+
+        var warehouse = await GetStorageLocationAsync(request.WarehouseId);
+        if (warehouse is null || !string.Equals(warehouse.LocationType, "KHO", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new BusinessRuleException("Kho lưu trữ được chọn không tồn tại hoặc không phải loại KHO.");
+        }
+
+        long shelfId;
+        string shelfCode;
+        string shelfName;
+
+        try
+        {
+            if (request.ExistingShelfId.HasValue && request.ExistingShelfId.Value > 0)
+            {
+                var existingShelf = await GetStorageLocationAsync(request.ExistingShelfId.Value);
+                if (existingShelf is null || !string.Equals(existingShelf.LocationType, "KE", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new BusinessRuleException("Kệ lưu trữ được chọn không tồn tại hoặc không phải loại KE.");
+                }
+                shelfId = existingShelf.Id;
+                shelfCode = existingShelf.Code;
+                shelfName = existingShelf.Name;
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(request.ShelfCode))
+                    throw new BusinessRuleException("Mã kệ không được để trống.");
+                if (string.IsNullOrWhiteSpace(request.ShelfName))
+                    throw new BusinessRuleException("Tên kệ không được để trống.");
+
+                shelfCode = request.ShelfCode.Trim().ToUpperInvariant();
+                shelfName = request.ShelfName.Trim();
+
+                shelfId = await CreateStorageLocationAsync(new StorageLocationRequest(
+                    Code: shelfCode,
+                    Name: shelfName,
+                    LocationType: "KE",
+                    ParentId: warehouse.Id,
+                    Status: "ACTIVE",
+                    Capacity: request.FloorCount * request.BoxesPerFloor
+                ));
+            }
+
+            int createdFloors = 0;
+            int createdBoxes = 0;
+
+            for (int f = 1; f <= request.FloorCount; f++)
+            {
+                var floorCode = $"{shelfCode}-T{f:D2}";
+                var floorName = $"Tầng {f:D2} - {shelfName}";
+
+                var floorId = await CreateStorageLocationAsync(new StorageLocationRequest(
+                    Code: floorCode,
+                    Name: floorName,
+                    LocationType: "TANG",
+                    ParentId: shelfId,
+                    Status: "ACTIVE",
+                    Capacity: request.BoxesPerFloor
+                ));
+                createdFloors++;
+
+                for (int b = 1; b <= request.BoxesPerFloor; b++)
+                {
+                    var boxCode = $"{floorCode}-H{b:D2}";
+                    var boxName = $"Hộp {b:D2} ({floorCode})";
+
+                    await CreateStorageLocationAsync(new StorageLocationRequest(
+                        Code: boxCode,
+                        Name: boxName,
+                        LocationType: "HOP",
+                        ParentId: floorId,
+                        Status: "ACTIVE",
+                        Capacity: request.BoxCapacity
+                    ));
+                    createdBoxes++;
+                }
+            }
+
+            var total = (request.ExistingShelfId.HasValue ? 0 : 1) + createdFloors + createdBoxes;
+            return new AutoGenerateStorageResult(
+                Success: true,
+                Message: $"Đã tự động sinh thành công Kệ '{shelfCode}', {createdFloors} Tầng và {createdBoxes} Hộp vào '{warehouse.Name}'.",
+                ShelfId: shelfId,
+                TotalCreated: total,
+                CreatedFloors: createdFloors,
+                CreatedBoxes: createdBoxes
+            );
+        }
+        catch (OracleException ex) when (ex.Number == 1)
+        {
+            throw new BusinessRuleException("Mã vị trí phát sinh trong quá trình sinh tự động đã bị trùng lặp trong hệ thống. Vui lòng chọn tiền tố mã Kệ khác.");
+        }
+    }
+
     public Task<IReadOnlyList<DossierDto>> GetDossiersAsync() =>
         QueryAsync("SELECT ID, CODE, TITLE, DOSSIER_TYPE, STORAGE_ID, STATUS, FROM_DATE, TO_DATE, DESCRIPTION, CREATED_AT FROM DMS_DOSSIERS ORDER BY ID", MapDossier);
 
@@ -1394,10 +1502,8 @@ public sealed class OracleDmsService
 
     public async Task<WorkflowTransitionResult> TransitionWorkflowAsync(WorkflowTransitionRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Actor))
-        {
-            throw new BusinessRuleException("Người thực hiện là bắt buộc.");
-        }
+        var actor = string.IsNullOrWhiteSpace(request.Actor) ? "system" : request.Actor.Trim();
+        request = request with { Actor = actor };
 
         var entityType = NormalizeEntityType(request.EntityType);
         var action = request.Action.Trim().ToUpperInvariant();
@@ -2537,17 +2643,24 @@ public sealed class OracleDmsService
     {
         var nextStatus = (entityType, currentStatus, action) switch
         {
-            ("DOSSIER", "DRAFT", "SUBMIT") => "PENDING",
-            ("DOSSIER", "DRAFT", "FORWARD") => "PENDING",
+            ("DOSSIER", "DRAFT", "SUBMIT") => "WAITING_APPROVAL",
+            ("DOSSIER", "DRAFT", "FORWARD") => "WAITING_APPROVAL",
+            ("DOSSIER", "WAITING_APPROVAL", "SUBMIT") => "WAITING_APPROVAL",
+            ("DOSSIER", "WAITING_APPROVAL", "FORWARD") => "WAITING_APPROVAL",
+            ("DOSSIER", "WAITING_APPROVAL", "APPROVE") => "PUBLISHED",
+            ("DOSSIER", "WAITING_APPROVAL", "PUBLISH") => "PUBLISHED",
+            ("DOSSIER", "WAITING_APPROVAL", "REJECT") => "REJECTED",
+            ("DOSSIER", "WAITING_APPROVAL", "REQUEST_SUPPLEMENT") => "NEEDS_SUPPLEMENT",
+            ("DOSSIER", "APPROVED", "PUBLISH") => "PUBLISHED",
             ("DOSSIER", "PENDING", "SUBMIT") => "PENDING",
             ("DOSSIER", "PENDING", "FORWARD") => "PENDING",
             ("DOSSIER", "DRAFT", "APPROVE") => "APPROVED",
             ("DOSSIER", "PENDING", "APPROVE") => "APPROVED",
             ("DOSSIER", "PENDING", "REJECT") => "REJECTED",
             ("DOSSIER", "PENDING", "REQUEST_SUPPLEMENT") => "NEEDS_SUPPLEMENT",
-            ("DOSSIER", "NEEDS_SUPPLEMENT", "SUBMIT") => "PENDING",
-            ("DOSSIER", "NEEDS_SUPPLEMENT", "FORWARD") => "PENDING",
-            ("DOSSIER", "NEEDS_SUPPLEMENT", "RESUBMIT") => "PENDING",
+            ("DOSSIER", "NEEDS_SUPPLEMENT", "SUBMIT") => "WAITING_APPROVAL",
+            ("DOSSIER", "NEEDS_SUPPLEMENT", "FORWARD") => "WAITING_APPROVAL",
+            ("DOSSIER", "NEEDS_SUPPLEMENT", "RESUBMIT") => "WAITING_APPROVAL",
             ("DOSSIER", "REJECTED", "SUBMIT") => "PENDING",
             ("DOSSIER", "APPROVED", "SUBMIT") => "PENDING",
             ("DOSSIER", "PUBLISHED", "SUBMIT") => "PENDING",

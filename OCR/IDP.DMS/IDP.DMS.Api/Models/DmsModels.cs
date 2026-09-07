@@ -18,6 +18,23 @@ public sealed record StorageLocationRequest(
     string? Status,
     int? Capacity);
 
+public sealed record AutoGenerateStorageRequest(
+    long WarehouseId,
+    string ShelfCode,
+    string ShelfName,
+    int FloorCount,
+    int BoxesPerFloor,
+    int BoxCapacity,
+    long? ExistingShelfId = null);
+
+public sealed record AutoGenerateStorageResult(
+    bool Success,
+    string Message,
+    long ShelfId,
+    int TotalCreated,
+    int CreatedFloors,
+    int CreatedBoxes);
+
 public sealed record DossierDto(
     long Id,
     string Code,

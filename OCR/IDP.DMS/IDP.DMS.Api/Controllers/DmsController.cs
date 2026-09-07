@@ -117,6 +117,13 @@ namespace IDP.DMS.Api.Controllers
             return affected == 0 ? NotFound() : NoContent();
         }
 
+        [HttpPost("storage-locations/auto-generate")]
+        public async Task<IActionResult> AutoGenerateStorage([FromBody] AutoGenerateStorageRequest request)
+        {
+            var result = await _dmsService.AutoGenerateStorageAsync(request);
+            return Ok(result);
+        }
+
         #endregion
 
         #region Dossiers CRUD
@@ -379,8 +386,19 @@ namespace IDP.DMS.Api.Controllers
             }
             catch (Exception ex)
             {
-                await _dmsService.UpdateDocumentOcrAsync(id, "ERROR", "");
-                return Problem($"An error occurred during OCR processing. Details: {ex.Message}");
+                var fallbackNote = $"Tải lên thành công. OCR thông báo: {ex.Message}";
+                if (fallbackNote.Length > 950) fallbackNote = fallbackNote[..947] + "...";
+                await _dmsService.UpdateDocumentOcrAsync(id, "PENDING", fallbackNote);
+                var latestDoc = await _dmsService.GetDocumentAsync(id);
+                return Ok(new
+                {
+                    message = "Tải lên tệp thành công!",
+                    ocrStatus = "PENDING",
+                    engine = engine ?? "easyocr",
+                    fileName = latestDoc?.FileName ?? doc.FileName,
+                    text = fallbackNote,
+                    usedFallback = true
+                });
             }
         }
 

@@ -12,7 +12,8 @@ export default function GD216SharedDossierTypeScreen() {
     name: "Ho so nhan su",
     unitCode: "BAN2",
     storageScope: "COMMON",
-    sharedUnitCodesText: "BAN1"
+    sharedUnitCodesText: "BAN1",
+    retentionPeriod: "Vĩnh viễn"
   });
   const [dedupResult, setDedupResult] = useState(null);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -121,6 +122,15 @@ export default function GD216SharedDossierTypeScreen() {
         </div>
         <label>Ten loai ho so
           <input value={form.name} onChange={event => setField("name", event.target.value)} />
+        </label>
+        <label>Thời hạn bảo quản
+          <select value={form.retentionPeriod} onChange={event => setField("retentionPeriod", event.target.value)}>
+            <option value="Vĩnh viễn">Vĩnh viễn</option>
+            <option value="5 năm">5 năm</option>
+            <option value="10 năm">10 năm</option>
+            <option value="20 năm">20 năm</option>
+            <option value="50 năm">50 năm</option>
+          </select>
         </label>
         <label>Pham vi kho
           <select value={form.storageScope} onChange={event => setField("storageScope", event.target.value)}>

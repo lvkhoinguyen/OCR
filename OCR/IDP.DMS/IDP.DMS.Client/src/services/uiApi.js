@@ -428,6 +428,7 @@ export const uiApi = {
     batchImportJob: (jobId) => request(`/api/dms/dossiers/batch-import-jobs/${jobId}`),
     batchImportJobs: (take = 20) => request(`/api/dms/dossiers/batch-import-jobs?take=${encodeURIComponent(take)}`)
   },
+  autoGenerateStorage: (payload) => request("/api/dms/storage-locations/auto-generate", jsonOptions("POST", payload)),
   crud: (type) => {
     const paths = {
       storage: "/api/dms/storage-locations",
@@ -441,6 +442,7 @@ export const uiApi = {
       create: (payload) => request(path, jsonOptions("POST", payload)),
       update: (id, payload) => request(`${path}/${id}`, jsonOptions("PUT", payload, false)),
       remove: (id) => request(`${path}/${id}`, { method: "DELETE", expectJson: false }),
+      autoGenerate: (payload) => request("/api/dms/storage-locations/auto-generate", jsonOptions("POST", payload)),
       upload: (id, file, engine = 'easyocr', unitCode = "DEFAULT") => {
         const formData = new FormData();
         formData.append("file", file);

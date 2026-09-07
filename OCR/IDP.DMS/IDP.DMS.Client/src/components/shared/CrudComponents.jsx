@@ -50,6 +50,7 @@ export function Field({ field, value, onChange }) {
   const common = {
     value: value ?? "",
     required: field.required,
+    placeholder: field.placeholder,
     onChange: (event) => onChange(event.target.value)
   };
   return (

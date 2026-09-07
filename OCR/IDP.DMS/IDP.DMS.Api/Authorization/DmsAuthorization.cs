@@ -40,6 +40,7 @@ public sealed class DmsPermissionHandler : AuthorizationHandler<DmsPermissionReq
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         if (context.User.IsInRole("SYSTEM_ADMIN") ||
+            context.User.IsInRole("ADMIN") ||
             permissions.Contains(DmsPermissions.All) ||
             permissions.Contains(DmsPermissions.Admin))
         {

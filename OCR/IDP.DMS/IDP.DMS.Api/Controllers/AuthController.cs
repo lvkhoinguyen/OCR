@@ -43,7 +43,7 @@ public sealed class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<ActionResult<AuthUserDto>> Register([FromBody] RegisterRequest request)
     {
-        var canAssignRole = User.IsInRole("SYSTEM_ADMIN") ||
+        var canAssignRole = User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("ADMIN") ||
             User.HasClaim("permission", "DMS.ADMIN") || User.HasClaim("permission", "*");
         var user = await _authService.RegisterAsync(request, canAssignRole);
         return Created($"/api/auth/users/{user.Id}", user);

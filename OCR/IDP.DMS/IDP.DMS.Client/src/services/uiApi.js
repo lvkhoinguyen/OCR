@@ -173,6 +173,23 @@ export const uiApi = {
       body: formData
     });
   },
+  ocr: {
+    process: (documentId, engine = "gemini", file = null) => {
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        if (documentId) formData.append("documentId", String(documentId));
+        if (engine) formData.append("engine", engine);
+        return request("/api/ocr/process", { method: "POST", body: formData });
+      }
+      const params = new URLSearchParams();
+      if (documentId) params.set("documentId", String(documentId));
+      if (engine) params.set("engine", engine);
+      return request(`/api/ocr/process?${params.toString()}`, { method: "POST" });
+    },
+    confirm: (payload) =>
+      request("/api/ocr/confirm", jsonOptions("POST", payload))
+  },
   features: (filters = {}) => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {

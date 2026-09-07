@@ -1,4 +1,4 @@
-﻿using IDP.DMS.Api.Models;
+using IDP.DMS.Api.Models;
 
 namespace IDP.DMS.Api.Services;
 
@@ -1648,7 +1648,13 @@ public sealed class Gd2BusinessService
         var dossier = EnsureDossier(id);
         var previousStatus = NormalizeStatus(dossier.Status);
         var nextStatus = ResolveDossierStatus(previousStatus, action);
-        var updated = dossier with { Status = nextStatus };
+        var desc = dossier.Description;
+        if (!string.IsNullOrWhiteSpace(comment) && action is "REQUEST_SUPPLEMENT" or "REJECT")
+        {
+            var prefix = action == "REQUEST_SUPPLEMENT" ? "[Yêu cầu bổ sung]: " : "[Từ chối]: ";
+            desc = $"{prefix}{comment.Trim()}";
+        }
+        var updated = dossier with { Status = nextStatus, Description = desc };
         _dossiers[id] = updated;
 
         AddWorkflowEvent("DOSSIER", id, action, previousStatus, nextStatus, comment, actor, unitCode);
@@ -2258,11 +2264,17 @@ public sealed class Gd2BusinessService
             ("DRAFT", "APPROVE") => "APPROVED",
             ("DRAFT", "REQUEST_SUPPLEMENT") => "NEEDS_SUPPLEMENT",
             ("PENDING", "APPROVE") => "APPROVED",
+            ("PENDING", "PUBLISH") => "PUBLISHED",
             ("REJECTED", "APPROVE") => "APPROVED",
             ("PENDING", "REQUEST_SUPPLEMENT") => "NEEDS_SUPPLEMENT",
             ("NEEDS_SUPPLEMENT", "RESUBMIT") => "PENDING",
+            ("NEEDS_SUPPLEMENT", "SUBMIT") => "PENDING",
+            ("APPROVED", "PUBLISH") => "PUBLISHED",
             ("APPROVED", "REQUEST_SUPPLEMENT") => "NEEDS_SUPPLEMENT",
             ("PUBLISHED", "REQUEST_SUPPLEMENT") => "NEEDS_SUPPLEMENT",
+            ("APPROVED", "REJECT") => "REJECTED",
+            ("PUBLISHED", "REJECT") => "REJECTED",
+            ("REJECTED", "SUBMIT") => "PENDING",
             ("APPROVED", "SIGN") => "PUBLISHED",
             ("APPROVED", "CONFIRM") => "CONFIRMED",
             ("PUBLISHED", "CONFIRM") => "CONFIRMED",

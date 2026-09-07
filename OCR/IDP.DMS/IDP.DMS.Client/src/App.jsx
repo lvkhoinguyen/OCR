@@ -53,6 +53,7 @@ import DossierScreen from "./components/screens/DossierScreen";
 import SimpleResourceScreen from "./components/screens/SimpleResourceScreen";
 import ApprovalScreen from "./components/screens/ApprovalScreen";
 import { SearchScreen } from "./components/screens/SearchAndBorrowScreens";
+import GD26OcrScreen from "./components/screens/GD26OcrScreen";
 
 const ArchiveLabelModal = lazy(() => import("./components/ArchiveLabelModal"));
 const TechnicalModelViewer = lazy(() => import("./components/TechnicalModelViewer"));
@@ -2645,7 +2646,7 @@ export default function App() {
           {activeResource === "gd2-documents" && <GD21DocumentScreen />}
           {activeResource === "gd2-workflow" && <GD22WorkflowScreenV2 handoff={workflowHandoff} />}
           {activeResource === "gd2-permissions" && <GD23PermissionScreen />}
-          {activeResource === "gd2-ocr" && <GD2619OcrConfirmationScreen title={activeItem} onReviewReady={setWorkflowHandoff} onOpenWorkflow={openWorkflowReview} />}
+          {activeResource === "gd2-ocr" && <GD26OcrScreen />}
           {activeResource === "gd2-integration" && <GD27IntegrationScreen />}
           {activeResource === "gd2-signature" && <GD29PdfSignatureScreen />}
           {activeResource === "gd2-reports" && <GD21013ExecutiveDashboardScreen mode="report" />}
@@ -5655,7 +5656,7 @@ const gd26ZoneFieldOptions = [
   { key: "signer", label: "Người ký" },
 ];
 
-function GD26OcrScreen() {
+function GD26OcrScreenInline() {
   const [activeTab, setActiveTab] = useState("screen");
   const storageCrud = useCrud("storage", emptyStorage);
   const dossierTypeCrud = useCrud("dossier-types", emptySimple);

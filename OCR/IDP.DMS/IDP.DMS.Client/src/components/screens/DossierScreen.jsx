@@ -303,7 +303,7 @@ export default function DossierScreen({ mode }) {
     }
 
     // Nếu gửi kiểm duyệt: Bắt buộc phải có ít nhất 1 văn bản con đính kèm
-    if (targetStatus === "WAITING_APPROVAL") {
+    if (targetStatus === "PENDING") {
       if (attachedDocuments.length === 0) {
         setNotice({
           type: "error",
@@ -350,7 +350,7 @@ export default function DossierScreen({ mode }) {
             title: doc.title,
             fileName: doc.fileName || (doc.file?.name) || "",
             ocrStatus: "PENDING",
-            status: targetStatus === "WAITING_APPROVAL" ? "PENDING" : "DRAFT",
+            status: targetStatus === "PENDING" ? "PENDING" : "DRAFT",
             description: doc.description || `Cơ quan: ${doc.issuingAuthority || "N/A"} | Ngày: ${doc.issueDate || "N/A"}`
           });
 
@@ -364,8 +364,8 @@ export default function DossierScreen({ mode }) {
         }
       }
 
-      // Nếu chuyển sang trạng thái WAITING_APPROVAL, ghi log workflow transition
-      if (targetStatus === "WAITING_APPROVAL" && savedDossierId) {
+      // Nếu chuyển sang trạng thái PENDING, ghi log workflow transition
+      if (targetStatus === "PENDING" && savedDossierId) {
         try {
           await uiApi.gd2.transition({
             entityType: "DOSSIER",
@@ -378,8 +378,8 @@ export default function DossierScreen({ mode }) {
         }
       }
 
-      const successMsg = targetStatus === "WAITING_APPROVAL"
-        ? `Đã gửi hồ sơ "${form.code}" lên Lãnh đạo kiểm duyệt thành công! Trạng thái: Chờ duyệt (WAITING_APPROVAL).`
+      const successMsg = targetStatus === "PENDING"
+        ? `Đã gửi hồ sơ "${form.code}" lên Lãnh đạo kiểm duyệt thành công! Trạng thái: Chờ duyệt (PENDING).`
         : `Đã lưu tạm nháp hồ sơ "${form.code}" thành công! Trạng thái: Lưu nháp (DRAFT).`;
 
       setNotice({ type: "success", text: successMsg });
@@ -415,18 +415,18 @@ export default function DossierScreen({ mode }) {
       setLoading(true);
       await uiApi.crud("dossiers").update(dossier.id, {
         ...dossier,
-        status: "WAITING_APPROVAL"
+        status: "PENDING"
       });
       try {
         await uiApi.gd2.transition({
           entityType: "DOSSIER",
           entityId: Number(dossier.id),
           action: "SUBMIT",
-          comment: "Gửi kiểm duyệt hồ sơ từ danh sách."
+          comment: dossier.status === "NEEDS_SUPPLEMENT" ? "Chuyên viên gửi lại kiểm duyệt sau khi bổ sung." : "Gửi kiểm duyệt hồ sơ từ danh sách."
         });
       } catch {}
 
-      setNotice({ type: "success", text: `Đã gửi duyệt hồ sơ "${dossier.code}" thành công!` });
+      setNotice({ type: "success", text: `Đã gửi duyệt hồ sơ "${dossier.code}" thành công! Trạng thái: Chờ duyệt (PENDING).` });
       await loadData();
     } catch (err) {
       setNotice({ type: "error", text: `Lỗi gửi duyệt: ${err.message}` });
@@ -607,6 +607,52 @@ export default function DossierScreen({ mode }) {
                 </button>
               )}
             </div>
+
+            {/* Cảnh báo nếu hồ sơ bị yêu cầu bổ sung hoặc từ chối */}
+            {form.status === "NEEDS_SUPPLEMENT" && (
+              <div
+                style={{
+                  width: "100%",
+                  background: "#fffbeb",
+                  border: "1px solid #fde68a",
+                  borderRadius: "8px",
+                  padding: "10px 14px",
+                  marginBottom: "16px",
+                  color: "#92400e",
+                  fontSize: "13px"
+                }}
+              >
+                <div style={{ fontWeight: "700", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <AlertCircle size={16} color="#d97706" />
+                  Lãnh đạo yêu cầu bổ sung / chỉnh sửa hồ sơ:
+                </div>
+                <div style={{ marginTop: "4px", paddingLeft: "22px", fontStyle: "italic", color: "#78350f" }}>
+                  {form.description || "Vui lòng kiểm tra lại tài liệu và thông tin trước khi gửi lại kiểm duyệt."}
+                </div>
+              </div>
+            )}
+            {form.status === "REJECTED" && (
+              <div
+                style={{
+                  width: "100%",
+                  background: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  borderRadius: "8px",
+                  padding: "10px 14px",
+                  marginBottom: "16px",
+                  color: "#991b1b",
+                  fontSize: "13px"
+                }}
+              >
+                <div style={{ fontWeight: "700", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <AlertCircle size={16} color="#dc2626" />
+                  Hồ sơ đã bị từ chối phê duyệt:
+                </div>
+                <div style={{ marginTop: "4px", paddingLeft: "22px", fontStyle: "italic", color: "#7f1d1d" }}>
+                  {form.description || "Lý do từ chối không được ghi rõ."}
+                </div>
+              </div>
+            )}
 
             {/* Khối 1: Thông tin cơ bản hồ sơ */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
@@ -892,7 +938,7 @@ export default function DossierScreen({ mode }) {
                 <button
                   type="button"
                   className="btn primary"
-                  onClick={() => saveDossierWithStatus("WAITING_APPROVAL")}
+                  onClick={() => saveDossierWithStatus("PENDING")}
                   disabled={loading}
                   style={{
                     display: "inline-flex",
@@ -903,7 +949,13 @@ export default function DossierScreen({ mode }) {
                   }}
                 >
                   <Send size={16} />
-                  <span>{loading ? "Đang xử lý..." : "Gửi kiểm duyệt"}</span>
+                  <span>
+                    {loading
+                      ? "Đang xử lý..."
+                      : form.status === "NEEDS_SUPPLEMENT"
+                      ? "Gửi lại kiểm duyệt"
+                      : "Gửi kiểm duyệt"}
+                  </span>
                 </button>
               </div>
             </div>
@@ -992,6 +1044,7 @@ export default function DossierScreen({ mode }) {
                 ) : (
                   filteredDossiers.map(dossier => {
                     const docCount = docCountByDossierId.get(Number(dossier.id)) || 0;
+                    const canSubmit = ["DRAFT", "NEEDS_SUPPLEMENT"].includes(String(dossier.status || "DRAFT").toUpperCase());
                     const isDraft = String(dossier.status || "DRAFT").toUpperCase() === "DRAFT";
 
                     return (
@@ -1046,16 +1099,18 @@ export default function DossierScreen({ mode }) {
                               <span style={{ marginLeft: "4px" }}>Sửa</span>
                             </button>
 
-                            {isDraft && (
+                            {canSubmit && (
                               <button
                                 type="button"
                                 className="btn"
                                 onClick={() => handleQuickSubmitToReview(dossier)}
-                                title="Gửi kiểm duyệt ngay"
+                                title={dossier.status === "NEEDS_SUPPLEMENT" ? "Gửi lại kiểm duyệt" : "Gửi kiểm duyệt ngay"}
                                 style={{ padding: "4px 8px", fontSize: "12px", color: "#059669", background: "#ecfdf5" }}
                               >
                                 <Send size={14} />
-                                <span style={{ marginLeft: "4px" }}>Gửi duyệt</span>
+                                <span style={{ marginLeft: "4px" }}>
+                                  {dossier.status === "NEEDS_SUPPLEMENT" ? "Gửi lại" : "Gửi duyệt"}
+                                </span>
                               </button>
                             )}
 

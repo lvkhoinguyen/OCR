@@ -543,6 +543,7 @@ public class OcrService : IDisposable
         var ext         = Path.GetExtension(imagePath).TrimStart('.').ToLowerInvariant();
         var mimeType    = ext switch
         {
+            "pdf"           => "application/pdf",
             "jpg" or "jpeg" => "image/jpeg",
             "png"           => "image/png",
             "webp"          => "image/webp",

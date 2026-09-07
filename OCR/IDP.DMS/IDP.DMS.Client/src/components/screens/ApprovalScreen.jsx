@@ -31,10 +31,13 @@ export default function ApprovalScreen({ title }) {
 
   // Search & Filter
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("WAITING_APPROVAL"); // Mặc định chỉ hiển thị hồ sơ chờ duyệt
+  const [filterStatus, setFilterStatus] = useState("PENDING"); // Mặc định hiển thị hồ sơ chờ duyệt PENDING
 
   // Selected Dossier for Preview Modal
   const [selectedDossier, setSelectedDossier] = useState(null);
+  const [historyEvents, setHistoryEvents] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [expandedDocId, setExpandedDocId] = useState(null);
 
   // Rejection Modal State
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
@@ -48,6 +51,20 @@ export default function ApprovalScreen({ title }) {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState(null);
+
+  // Helper bóc tách metadata OCR đã mã hóa trong mô tả văn bản
+  const parseDocMetadata = useCallback((description) => {
+    if (!description) return null;
+    const openIdx = description.indexOf("[METADATA_JSON]");
+    const closeIdx = description.indexOf("[/METADATA_JSON]");
+    if (openIdx >= 0 && closeIdx > openIdx) {
+      try {
+        const jsonStr = description.slice(openIdx + 15, closeIdx).trim();
+        return JSON.parse(jsonStr);
+      } catch {}
+    }
+    return null;
+  }, []);
 
   const storageById = useMemo(
     () => new Map(storageRows.map(r => [Number(r.id), r])),
@@ -106,29 +123,40 @@ export default function ApprovalScreen({ title }) {
     loadData();
   }, [loadData]);
 
-  // Hành động [✓ Phê duyệt xuất bản]
-  async function handleApprovePublish(dossier) {
-    if (!window.confirm(`Xác nhận PHÊ DUYỆT VÀ XUẤT BẢN hồ sơ "${dossier.code} - ${dossier.title}"?`)) {
+  // Tải lịch sử sự kiện luồng khi xem chi tiết hồ sơ
+  useEffect(() => {
+    if (selectedDossier?.id) {
+      setHistoryLoading(true);
+      uiApi.gd2.workflowHistory("DOSSIER", selectedDossier.id)
+        .then(res => setHistoryEvents(Array.isArray(res) ? res : (res?.items || [])))
+        .catch(() => setHistoryEvents([]))
+        .finally(() => setHistoryLoading(false));
+    } else {
+      setHistoryEvents([]);
+    }
+  }, [selectedDossier?.id]);
+
+  // Hành động [✓ Phê duyệt] -> APPROVED
+  async function handleApprove(dossier) {
+    if (!window.confirm(`Xác nhận PHÊ DUYỆT hồ sơ "${dossier.code} - ${dossier.title}"?`)) {
       return;
     }
 
     setSubmittingAction(true);
     setNotice(null);
     try {
-      // 1. Cập nhật trạng thái hồ sơ sang PUBLISHED trong DB
       await uiApi.crud("dossiers").update(dossier.id, {
         ...dossier,
-        status: "PUBLISHED"
+        status: "APPROVED"
       });
 
-      // 2. Ghi nhận luồng workflow transition
       try {
         await uiApi.gd2.transition({
           entityType: "DOSSIER",
           entityId: Number(dossier.id),
-          action: "PUBLISH",
+          action: "APPROVE",
           actor: "lanhdao",
-          comment: "Lãnh đạo phê duyệt và xuất bản hồ sơ lên hệ thống tra cứu.",
+          comment: "Lãnh đạo phê duyệt hồ sơ lưu trữ.",
           recipient: dossier.code
         });
       } catch (wfErr) {
@@ -137,25 +165,63 @@ export default function ApprovalScreen({ title }) {
 
       setNotice({
         type: "success",
-        text: `Đã phê duyệt xuất bản hồ sơ "${dossier.code}" thành công! Trạng thái: Đã xuất bản (PUBLISHED).`
+        text: `Đã phê duyệt hồ sơ "${dossier.code}" thành công! Trạng thái: Đã duyệt (APPROVED). Bạn có thể bấm tiếp [Xuất bản] để phát hành hồ sơ.`
       });
 
-      if (selectedDossier?.id === dossier.id) {
-        setSelectedDossier(null);
-      }
-
+      setSelectedDossier(prev => (prev?.id === dossier.id ? { ...prev, status: "APPROVED" } : prev));
       await loadData();
     } catch (err) {
-      setNotice({ type: "error", text: `Lỗi phê duyệt xuất bản: ${err.message}` });
+      setNotice({ type: "error", text: `Lỗi phê duyệt: ${err.message}` });
     } finally {
       setSubmittingAction(false);
     }
   }
 
-  // Mở modal Từ chối / Báo lỗi
-  function openRejectModal(dossier) {
+  // Hành động [🚀 Xuất bản] -> PUBLISHED
+  async function handlePublish(dossier) {
+    if (!window.confirm(`Xác nhận XUẤT BẢN hồ sơ "${dossier.code} - ${dossier.title}" lên kho lưu trữ số?`)) {
+      return;
+    }
+
+    setSubmittingAction(true);
+    setNotice(null);
+    try {
+      await uiApi.crud("dossiers").update(dossier.id, {
+        ...dossier,
+        status: "PUBLISHED"
+      });
+
+      try {
+        await uiApi.gd2.transition({
+          entityType: "DOSSIER",
+          entityId: Number(dossier.id),
+          action: "PUBLISH",
+          actor: "lanhdao",
+          comment: "Lãnh đạo xuất bản hồ sơ lên kho lưu trữ số.",
+          recipient: dossier.code
+        });
+      } catch (wfErr) {
+        console.warn("Workflow log warning:", wfErr);
+      }
+
+      setNotice({
+        type: "success",
+        text: `Đã xuất bản hồ sơ "${dossier.code}" thành công! Trạng thái: Đã xuất bản (PUBLISHED).`
+      });
+
+      setSelectedDossier(null);
+      await loadData();
+    } catch (err) {
+      setNotice({ type: "error", text: `Lỗi xuất bản: ${err.message}` });
+    } finally {
+      setSubmittingAction(false);
+    }
+  }
+
+  // Mở modal Từ chối / Yêu cầu bổ sung
+  function openRejectModal(dossier, defaultAction = "REJECT") {
     setRejectDossier(dossier);
-    setRejectAction("REJECT");
+    setRejectAction(defaultAction);
     setRejectReason("");
     setRejectModalOpen(true);
   }
@@ -172,13 +238,14 @@ export default function ApprovalScreen({ title }) {
 
     setSubmittingAction(true);
     const targetStatus = rejectAction === "REQUEST_SUPPLEMENT" ? "NEEDS_SUPPLEMENT" : "REJECTED";
+    const prefix = rejectAction === "REQUEST_SUPPLEMENT" ? "[Yêu cầu bổ sung]: " : "[Từ chối]: ";
 
     try {
-      // 1. Cập nhật trạng thái hồ sơ
+      // 1. Cập nhật trạng thái hồ sơ và ghi chú lý do
       await uiApi.crud("dossiers").update(dossier.id, {
         ...dossier,
         status: targetStatus,
-        description: `${dossier.description || ""}\n[Phản hồi lãnh đạo]: ${rejectReason.trim()}`.trim()
+        description: `${prefix}${rejectReason.trim()}`
       });
 
       // 2. Ghi nhận luồng workflow transition
@@ -252,7 +319,12 @@ export default function ApprovalScreen({ title }) {
     return dossiers.filter(d => {
       const matchSearch = !searchTerm.trim() ||
         `${d.code} ${d.title} ${d.dossierType || ""}`.toLowerCase().includes(searchTerm.trim().toLowerCase());
-      const matchStatus = filterStatus === "ALL" || String(d.status || "").toUpperCase() === filterStatus;
+      const st = String(d.status || "").toUpperCase();
+      const matchStatus = filterStatus === "ALL"
+        ? true
+        : filterStatus === "PENDING"
+        ? (st === "PENDING" || st === "WAITING_APPROVAL")
+        : st === filterStatus;
       return matchSearch && matchStatus;
     });
   }, [dossiers, searchTerm, filterStatus]);
@@ -384,15 +456,14 @@ export default function ApprovalScreen({ title }) {
             <select
               value={filterStatus}
               onChange={e => setFilterStatus(e.target.value)}
-              style={{ width: "220px", fontWeight: "600" }}
+              style={{ width: "230px", fontWeight: "600" }}
             >
-              <option value="WAITING_APPROVAL">⏳ Chờ duyệt (WAITING_APPROVAL)</option>
               <option value="PENDING">⏳ Chờ duyệt (PENDING)</option>
-              <option value="PUBLISHED">✓ Đã xuất bản (PUBLISHED)</option>
               <option value="APPROVED">✓ Đã duyệt (APPROVED)</option>
-              <option value="REJECTED">✕ Từ chối (REJECTED)</option>
+              <option value="PUBLISHED">🚀 Đã xuất bản (PUBLISHED)</option>
               <option value="NEEDS_SUPPLEMENT">⚠ Cần bổ sung (NEEDS_SUPPLEMENT)</option>
-              <option value="ALL">📋 Tất cả trạng thái</option>
+              <option value="REJECTED">✕ Từ chối (REJECTED)</option>
+              <option value="ALL">📋 Tất cả trạng thái ({dossiers.length})</option>
             </select>
           </div>
         </div>
@@ -416,8 +487,8 @@ export default function ApprovalScreen({ title }) {
             {filteredRows.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ textAlign: "center", padding: "40px 12px", color: "#64748b" }}>
-                  {filterStatus === "WAITING_APPROVAL"
-                    ? "Hiện không có hồ sơ nào đang chờ duyệt."
+                  {filterStatus === "PENDING"
+                    ? "Hiện không có hồ sơ nào đang chờ duyệt (PENDING)."
                     : "Không tìm thấy hồ sơ nào phù hợp với bộ lọc."}
                 </td>
               </tr>
@@ -426,6 +497,7 @@ export default function ApprovalScreen({ title }) {
                 const childDocs = docsByDossierId.get(Number(row.id)) || [];
                 const docCount = childDocs.length;
                 const canReview = ["WAITING_APPROVAL", "PENDING"].includes(String(row.status || "").toUpperCase());
+                const isApproved = String(row.status || "").toUpperCase() === "APPROVED";
 
                 return (
                   <tr
@@ -480,23 +552,23 @@ export default function ApprovalScreen({ title }) {
                           type="button"
                           className="btn"
                           onClick={() => setSelectedDossier(row)}
-                          title="Xem chi tiết nội dung & văn bản"
+                          title="Xem chi tiết nội dung, văn bản & đối soát OCR"
                           style={{ padding: "4px 8px", fontSize: "12px", color: "#0284c7" }}
                         >
                           <Eye size={13} />
                           <span style={{ marginLeft: "4px" }}>Xem</span>
                         </button>
 
-                        {/* Nút Phê duyệt xuất bản */}
+                        {/* 1. Nút [Phê duyệt] -> APPROVED */}
                         {canReview && (
                           <button
                             type="button"
                             className="btn primary"
-                            onClick={() => handleApprovePublish(row)}
+                            onClick={() => handleApprove(row)}
                             disabled={submittingAction}
-                            title="Phê duyệt và xuất bản hồ sơ lên hệ thống"
+                            title="Phê duyệt hồ sơ lưu trữ"
                             style={{
-                              padding: "4px 10px",
+                              padding: "4px 8px",
                               fontSize: "12px",
                               background: "#059669",
                               borderColor: "#059669",
@@ -507,28 +579,79 @@ export default function ApprovalScreen({ title }) {
                             }}
                           >
                             <CheckCircle2 size={13} />
-                            <span>Duyệt xuất bản</span>
+                            <span>Phê duyệt</span>
                           </button>
                         )}
 
-                        {/* Nút Từ chối / Báo lỗi */}
+                        {/* 2. Nút [Xuất bản] -> PUBLISHED (sau khi APPROVED) */}
+                        {isApproved && (
+                          <button
+                            type="button"
+                            className="btn primary"
+                            onClick={() => handlePublish(row)}
+                            disabled={submittingAction}
+                            title="Xuất bản hồ sơ lên kho lưu trữ số"
+                            style={{
+                              padding: "4px 8px",
+                              fontSize: "12px",
+                              background: "#0284c7",
+                              borderColor: "#0284c7",
+                              color: "#ffffff",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px"
+                            }}
+                          >
+                            <Sparkles size={13} />
+                            <span>Xuất bản</span>
+                          </button>
+                        )}
+
+                        {/* 3. Nút [Yêu cầu bổ sung] -> NEEDS_SUPPLEMENT */}
                         {canReview && (
                           <button
                             type="button"
                             className="btn"
-                            onClick={() => openRejectModal(row)}
+                            onClick={() => openRejectModal(row, "REQUEST_SUPPLEMENT")}
                             disabled={submittingAction}
-                            title="Từ chối hoặc yêu cầu bổ sung"
+                            title="Yêu cầu chuyên viên bổ sung / chỉnh sửa hồ sơ"
+                            style={{
+                              padding: "4px 8px",
+                              fontSize: "12px",
+                              color: "#b45309",
+                              background: "#fffbeb",
+                              borderColor: "#fde68a",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px"
+                            }}
+                          >
+                            <AlertCircle size={13} />
+                            <span>Bổ sung</span>
+                          </button>
+                        )}
+
+                        {/* 4. Nút [Từ chối] -> REJECTED */}
+                        {canReview && (
+                          <button
+                            type="button"
+                            className="btn"
+                            onClick={() => openRejectModal(row, "REJECT")}
+                            disabled={submittingAction}
+                            title="Từ chối phê duyệt hồ sơ"
                             style={{
                               padding: "4px 8px",
                               fontSize: "12px",
                               color: "#dc2626",
                               background: "#fef2f2",
-                              borderColor: "#fecaca"
+                              borderColor: "#fecaca",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px"
                             }}
                           >
                             <XCircle size={13} />
-                            <span style={{ marginLeft: "4px" }}>Từ chối</span>
+                            <span>Từ chối</span>
                           </button>
                         )}
                       </div>
@@ -673,71 +796,168 @@ export default function ApprovalScreen({ title }) {
                         (docsByDossierId.get(Number(selectedDossier.id)) || []).map((doc, idx) => {
                           const ext = getFileExtension(doc.fileName);
                           const isPdf = ext === "pdf";
+                          const meta = parseDocMetadata(doc.description);
+                          const isExpanded = expandedDocId === doc.id;
 
                           return (
-                            <tr key={doc.id}>
-                              <td style={{ textAlign: "center", color: "#64748b" }}>{idx + 1}</td>
-                              <td><strong style={{ color: "#0369a1" }}>{doc.code}</strong></td>
-                              <td>{doc.title}</td>
-                              <td>
-                                {doc.fileName ? (
-                                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                    <span
-                                      style={{
-                                        background: isPdf ? "#fee2e2" : "#e0f2fe",
-                                        color: isPdf ? "#b91c1c" : "#0369a1",
-                                        padding: "2px 6px",
-                                        borderRadius: "4px",
-                                        fontSize: "10px",
-                                        fontWeight: "700"
-                                      }}
-                                    >
-                                      {isPdf ? "PDF" : ext.toUpperCase() || "DOC"}
-                                    </span>
-                                    <span style={{ fontSize: "12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100px" }} title={doc.fileName}>
-                                      {doc.fileName}
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <span style={{ fontSize: "12px", color: "#94a3b8" }}>Chưa có file</span>
-                                )}
-                              </td>
-                              <td style={{ textAlign: "center" }}>
-                                <span
-                                  style={{
-                                    display: "inline-block",
-                                    padding: "2px 8px",
-                                    borderRadius: "12px",
-                                    fontSize: "11px",
-                                    fontWeight: "600",
-                                    background: doc.ocrStatus === "DONE" ? "#ecfdf5" : "#f1f5f9",
-                                    color: doc.ocrStatus === "DONE" ? "#047857" : "#475569"
-                                  }}
-                                >
-                                  {doc.ocrStatus === "DONE" ? "Đã OCR" : doc.ocrStatus || "Chờ"}
-                                </span>
-                              </td>
-                              <td style={{ textAlign: "center" }}>
-                                {doc.fileName && (
-                                  <button
-                                    type="button"
-                                    className="btn"
-                                    onClick={() => openDocPreview(doc)}
-                                    title="Xem trực tuyến văn bản này"
-                                    style={{ padding: "4px 8px", fontSize: "12px", color: "#0284c7" }}
+                            <>
+                              <tr key={doc.id}>
+                                <td style={{ textAlign: "center", color: "#64748b" }}>{idx + 1}</td>
+                                <td><strong style={{ color: "#0369a1" }}>{doc.code}</strong></td>
+                                <td>
+                                  <div>{doc.title}</div>
+                                  {meta && (
+                                    <div style={{ fontSize: "11px", color: "#0284c7", marginTop: "2px", display: "flex", gap: "10px" }}>
+                                      <span>Số: <strong>{meta.documentNumber || "--"}</strong></span>
+                                      <span>Ngày: <strong>{meta.issueDate || "--"}</strong></span>
+                                      <span>Ký: <strong>{meta.signer || "--"}</strong></span>
+                                    </div>
+                                  )}
+                                </td>
+                                <td>
+                                  {doc.fileName ? (
+                                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                      <span
+                                        style={{
+                                          background: isPdf ? "#fee2e2" : "#e0f2fe",
+                                          color: isPdf ? "#b91c1c" : "#0369a1",
+                                          padding: "2px 6px",
+                                          borderRadius: "4px",
+                                          fontSize: "10px",
+                                          fontWeight: "700"
+                                        }}
+                                      >
+                                        {isPdf ? "PDF" : ext.toUpperCase() || "DOC"}
+                                      </span>
+                                      <span style={{ fontSize: "12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100px" }} title={doc.fileName}>
+                                        {doc.fileName}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span style={{ fontSize: "12px", color: "#94a3b8" }}>Chưa có file</span>
+                                  )}
+                                </td>
+                                <td style={{ textAlign: "center" }}>
+                                  <span
+                                    style={{
+                                      display: "inline-block",
+                                      padding: "2px 8px",
+                                      borderRadius: "12px",
+                                      fontSize: "11px",
+                                      fontWeight: "600",
+                                      background: doc.ocrStatus === "CONFIRMED" ? "#ecfdf5" : doc.ocrStatus === "DONE" ? "#f0fdf4" : "#f1f5f9",
+                                      color: doc.ocrStatus === "CONFIRMED" ? "#047857" : doc.ocrStatus === "DONE" ? "#15803d" : "#475569"
+                                    }}
                                   >
-                                    <Eye size={13} />
-                                    <span style={{ marginLeft: "4px" }}>Xem file</span>
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
+                                    {doc.ocrStatus === "CONFIRMED" ? "Đã đối soát" : doc.ocrStatus === "DONE" ? "Đã OCR" : doc.ocrStatus || "Chờ"}
+                                  </span>
+                                </td>
+                                <td style={{ textAlign: "center" }}>
+                                  <div style={{ display: "inline-flex", gap: "4px" }}>
+                                    {meta && (
+                                      <button
+                                        type="button"
+                                        className="btn"
+                                        onClick={() => setExpandedDocId(isExpanded ? null : doc.id)}
+                                        title="Xem chi tiết kết quả đối soát OCR"
+                                        style={{ padding: "4px 6px", fontSize: "11px", color: "#0369a1", background: "#f0f9ff" }}
+                                      >
+                                        {isExpanded ? "Ẩn OCR" : "Soát OCR"}
+                                      </button>
+                                    )}
+                                    {doc.fileName && (
+                                      <button
+                                        type="button"
+                                        className="btn"
+                                        onClick={() => openDocPreview(doc)}
+                                        title="Xem trực tuyến văn bản này"
+                                        style={{ padding: "4px 8px", fontSize: "12px", color: "#0284c7" }}
+                                      >
+                                        <Eye size={13} />
+                                        <span style={{ marginLeft: "4px" }}>File</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                              {isExpanded && meta && (
+                                <tr style={{ background: "#f0fdf4" }}>
+                                  <td colSpan={6} style={{ padding: "10px 16px", borderTop: "1px dashed #bbf7d0" }}>
+                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "8px", fontSize: "12px" }}>
+                                      <div><strong>Số hiệu:</strong> {meta.documentNumber || "--"}</div>
+                                      <div><strong>Ngày ban hành:</strong> {meta.issueDate || "--"}</div>
+                                      <div><strong>Cơ quan ban hành:</strong> {meta.issuingAuthority || "--"}</div>
+                                      <div><strong>Người ký:</strong> {meta.signer || "--"}</div>
+                                      <div style={{ gridColumn: "1 / -1" }}><strong>Trích yếu:</strong> {meta.subject || doc.title || "--"}</div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </>
                           );
                         })
                       )}
                     </tbody>
                   </table>
                 </div>
+              </div>
+
+              {/* Lịch sử xử lý luồng (Workflow Timeline / Audit Log) */}
+              <div style={{ marginTop: "24px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                  <Clock size={18} color="#0284c7" />
+                  <h4 style={{ margin: 0, fontSize: "14px", color: "#1e293b" }}>
+                    Lịch sử phê duyệt & luồng xử lý (Workflow Audit Log)
+                  </h4>
+                </div>
+
+                {historyLoading ? (
+                  <div style={{ padding: "12px", color: "#64748b", fontSize: "13px" }}>Đang tải lịch sử luồng...</div>
+                ) : historyEvents.length === 0 ? (
+                  <div style={{ padding: "12px", color: "#94a3b8", fontSize: "13px", fontStyle: "italic", background: "#f8fafc", borderRadius: "6px" }}>
+                    Chưa có sự kiện workflow nào được ghi nhận cho hồ sơ này.
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {historyEvents.map((evt, eIdx) => (
+                      <div
+                        key={evt.id || eIdx}
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: "12px",
+                          padding: "10px 14px",
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: "8px",
+                          fontSize: "12px"
+                        }}
+                      >
+                        <div style={{ width: "22px", height: "22px", borderRadius: "50%", background: "#e0f2fe", color: "#0369a1", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "700", flexShrink: 0 }}>
+                          {historyEvents.length - eIdx}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <strong>
+                              {evt.actor || "Người dùng"} - Hành động: <span style={{ color: "#0284c7" }}>{evt.action}</span>
+                            </strong>
+                            <span style={{ color: "#64748b" }}>
+                              {evt.createdAt ? String(evt.createdAt).replace("T", " ").slice(0, 19) : "--"}
+                            </span>
+                          </div>
+                          <div style={{ marginTop: "2px", color: "#475569" }}>
+                            Chuyển trạng thái: <span style={{ fontWeight: "600" }}>{evt.fromStatus || "DRAFT"}</span> ➔ <span style={{ fontWeight: "700", color: "#059669" }}>{evt.toStatus}</span>
+                          </div>
+                          {evt.comment && (
+                            <div style={{ marginTop: "4px", background: "#ffffff", padding: "6px 10px", borderRadius: "4px", border: "1px solid #e2e8f0", color: "#334155" }}>
+                              <strong>Ghi chú / Lý do:</strong> {evt.comment}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -765,7 +985,7 @@ export default function ApprovalScreen({ title }) {
                   <button
                     type="button"
                     className="btn"
-                    onClick={() => openRejectModal(selectedDossier)}
+                    onClick={() => openRejectModal(selectedDossier, "REJECT")}
                     disabled={submittingAction}
                     style={{
                       background: "#fef2f2",
@@ -777,13 +997,31 @@ export default function ApprovalScreen({ title }) {
                     }}
                   >
                     <XCircle size={16} />
-                    <span>Từ chối / Báo lỗi</span>
+                    <span>Từ chối</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => openRejectModal(selectedDossier, "REQUEST_SUPPLEMENT")}
+                    disabled={submittingAction}
+                    style={{
+                      background: "#fffbeb",
+                      color: "#b45309",
+                      borderColor: "#fde68a",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px"
+                    }}
+                  >
+                    <AlertCircle size={16} />
+                    <span>Yêu cầu bổ sung</span>
                   </button>
 
                   <button
                     type="button"
                     className="btn primary"
-                    onClick={() => handleApprovePublish(selectedDossier)}
+                    onClick={() => handleApprove(selectedDossier)}
                     disabled={submittingAction}
                     style={{
                       background: "#059669",
@@ -795,7 +1033,47 @@ export default function ApprovalScreen({ title }) {
                     }}
                   >
                     <CheckCircle2 size={16} />
-                    <span>{submittingAction ? "Đang xử lý..." : "✓ Phê duyệt xuất bản"}</span>
+                    <span>{submittingAction ? "Đang xử lý..." : "✓ Phê duyệt"}</span>
+                  </button>
+                </div>
+              )}
+
+              {String(selectedDossier.status || "").toUpperCase() === "APPROVED" && (
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => openRejectModal(selectedDossier, "REQUEST_SUPPLEMENT")}
+                    disabled={submittingAction}
+                    style={{
+                      background: "#fffbeb",
+                      color: "#b45309",
+                      borderColor: "#fde68a",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px"
+                    }}
+                  >
+                    <AlertCircle size={16} />
+                    <span>Yêu cầu bổ sung</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn primary"
+                    onClick={() => handlePublish(selectedDossier)}
+                    disabled={submittingAction}
+                    style={{
+                      background: "#0284c7",
+                      borderColor: "#0284c7",
+                      color: "#ffffff",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px"
+                    }}
+                  >
+                    <Sparkles size={16} />
+                    <span>{submittingAction ? "Đang xử lý..." : "🚀 Xuất bản hồ sơ"}</span>
                   </button>
                 </div>
               )}
@@ -927,16 +1205,22 @@ export default function ApprovalScreen({ title }) {
                 onClick={handleConfirmReject}
                 disabled={submittingAction}
                 style={{
-                  background: "#dc2626",
+                  background: rejectAction === "REQUEST_SUPPLEMENT" ? "#d97706" : "#dc2626",
                   color: "#ffffff",
-                  borderColor: "#dc2626",
+                  borderColor: rejectAction === "REQUEST_SUPPLEMENT" ? "#d97706" : "#dc2626",
                   display: "inline-flex",
                   alignItems: "center",
                   gap: "6px"
                 }}
               >
-                <XCircle size={15} />
-                <span>{submittingAction ? "Đang gửi..." : "Xác nhận gửi phản hồi"}</span>
+                {rejectAction === "REQUEST_SUPPLEMENT" ? <AlertCircle size={15} /> : <XCircle size={15} />}
+                <span>
+                  {submittingAction
+                    ? "Đang gửi..."
+                    : rejectAction === "REQUEST_SUPPLEMENT"
+                    ? "Gửi yêu cầu bổ sung"
+                    : "Xác nhận từ chối"}
+                </span>
               </button>
             </div>
           </div>

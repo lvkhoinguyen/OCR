@@ -90,31 +90,38 @@ export default function DocumentPanel({
       }
       setPendingFile(file);
       setError(null);
-      // Gợi ý trích yếu nếu người dùng chưa nhập
+      const cleanName = file.name.replace(/\.[^/.]+$/, "");
+      // Tự động lấy Tên tệp làm Tên văn bản
       if (!form.title) {
-        const cleanName = file.name.replace(/\.[^/.]+$/, "");
         setForm(prev => ({ ...prev, title: cleanName }));
+      }
+      // Tự động sinh mã văn bản nếu chưa nhập
+      if (!form.code) {
+        const cleanCode = cleanName.toUpperCase().replace(/[^A-Z0-9_-]/g, "_").slice(0, 25);
+        setForm(prev => ({ ...prev, code: `VB-${cleanCode || Date.now().toString().slice(-4)}` }));
       }
     }
   }
 
   async function handleAddDocument(e) {
     e?.preventDefault();
-    if (!form.code.trim()) {
-      setError("Vui lòng nhập Số ký hiệu văn bản.");
-      return;
+    let finalCode = form.code.trim();
+    let finalTitle = form.title.trim();
+
+    if (!finalCode) {
+      const cleanName = pendingFile ? pendingFile.name.replace(/\.[^/.]+$/, "") : "";
+      finalCode = `VB-${cleanName.toUpperCase().replace(/[^A-Z0-9_-]/g, "_").slice(0, 25) || Date.now().toString().slice(-4)}`;
     }
-    if (!form.title.trim()) {
-      setError("Vui lòng nhập Trích yếu nội dung văn bản.");
-      return;
+    if (!finalTitle) {
+      finalTitle = pendingFile ? pendingFile.name.replace(/\.[^/.]+$/, "") : "Văn bản đính kèm";
     }
 
     setAdding(true);
     setError(null);
 
     const docMeta = {
-      code: form.code.trim(),
-      title: form.title.trim(),
+      code: finalCode,
+      title: finalTitle,
       issueDate: form.issueDate,
       issuingAuthority: form.issuingAuthority.trim(),
       file: pendingFile,

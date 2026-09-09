@@ -187,16 +187,26 @@ namespace IDP.DMS.Api.Controllers
                     return BadRequest(new { success = false, message = "Vui lòng cung cấp DocumentId hoặc tải tệp lên để OCR." });
                 }
 
-                // Thực hiện bóc tách AI OCR (ưu tiên Gemini, fallback tự động nếu lỗi)
+                // Thực hiện bóc tách AI OCR theo engine được yêu cầu (hỗ trợ chế độ ngoại tuyến Tesseract/VietOCR)
                 DigitizeMetadataResult extraction;
-                try
+                if (targetEngine.Equals("tesseract", StringComparison.OrdinalIgnoreCase) ||
+                    targetEngine.Equals("vietocr", StringComparison.OrdinalIgnoreCase) ||
+                    targetEngine.Equals("fallback", StringComparison.OrdinalIgnoreCase))
                 {
-                    extraction = await _ocrService.ExtractStructuredMetadataAsync(filePath);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Gemini OCR gặp lỗi trên {Path}. Đang chuyển sang cơ chế fallback...", filePath);
+                    _logger.LogInformation("Engine '{Engine}' được chỉ định, thực thi bóc tách cục bộ...", targetEngine);
                     extraction = RunFallbackExtraction(filePath);
+                }
+                else
+                {
+                    try
+                    {
+                        extraction = await _ocrService.ExtractStructuredMetadataAsync(filePath);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Gemini OCR gặp lỗi trên {Path}. Đang chuyển sang cơ chế fallback...", filePath);
+                        extraction = RunFallbackExtraction(filePath);
+                    }
                 }
 
                 // Nếu có targetDocId -> Cập nhật Database

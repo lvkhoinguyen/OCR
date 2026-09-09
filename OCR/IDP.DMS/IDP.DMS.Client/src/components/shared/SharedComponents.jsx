@@ -11,22 +11,23 @@ import { formatCell } from "../../hooks/useCrud";
  */
 export function StatusBadge({ status }) {
   const map = {
-    PUBLISHED: { label: "Đã xuất bản", color: "#059669", bg: "#d1fae5" },
-    WAITING_APPROVAL: { label: "Chờ duyệt", color: "#b45309", bg: "#fef3c7" },
-    PENDING: { label: "Chờ duyệt", color: "#b45309", bg: "#fef3c7" },
-    DRAFT: { label: "Lưu nháp", color: "#6b7280", bg: "#f3f4f6" },
-    APPROVED: { label: "Đã duyệt", color: "#16a34a", bg: "#dcfce7" },
+    DRAFT: { label: "Bản nháp", color: "#475569", bg: "#f1f5f9" },
+    PENDING: { label: "Chờ kiểm duyệt", color: "#b45309", bg: "#fef3c7" },
+    WAITING_APPROVAL: { label: "Chờ kiểm duyệt", color: "#b45309", bg: "#fef3c7" },
+    APPROVED: { label: "Đã phê duyệt", color: "#16a34a", bg: "#dcfce7" },
+    NEEDS_SUPPLEMENT: { label: "Cần bổ sung", color: "#c2410c", bg: "#ffedd5" },
     REJECTED: { label: "Từ chối", color: "#dc2626", bg: "#fee2e2" },
-    CANCELLED: { label: "Hủy", color: "#6b7280", bg: "#f3f4f6" },
-    NEEDS_SUPPLEMENT: { label: "Cần bổ sung", color: "#d97706", bg: "#ffedd5" },
-    CONFIRMED: { label: "Xác nhận", color: "#2563eb", bg: "#dbeafe" },
+    PUBLISHED: { label: "Đã xuất bản", color: "#0f766e", bg: "#ccfbf1" },
+    CONFIRMED: { label: "Đã xác nhận", color: "#2563eb", bg: "#dbeafe" },
     ACTIVE: { label: "Hoạt động", color: "#2563eb", bg: "#dbeafe" },
     IN_PROGRESS: { label: "Đang xử lý", color: "#7c3aed", bg: "#ede9fe" },
-    DONE: { label: "Xong", color: "#16a34a", bg: "#dcfce7" },
+    DONE: { label: "Hoàn thành", color: "#16a34a", bg: "#dcfce7" },
+    CANCELLED: { label: "Đã hủy", color: "#6b7280", bg: "#f3f4f6" },
   };
-  const s = map[status] || { label: status, color: "#6b7280", bg: "#f3f4f6" };
+  const key = String(status || "").toUpperCase();
+  const s = map[key] || { label: status || "--", color: "#6b7280", bg: "#f3f4f6" };
   return (
-    <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 12, fontSize: 11, fontWeight: 700, color: s.color, background: s.bg }}>
+    <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: 700, color: s.color, background: s.bg, whiteSpace: "nowrap" }}>
       {s.label}
     </span>
   );
@@ -37,14 +38,15 @@ export function StatusBadge({ status }) {
  */
 export function OcrBadge({ status }) {
   const map = {
-    DONE: { icon: "✓", label: "Xong", color: "#16a34a", bg: "#dcfce7" },
-    PENDING: { icon: "•", label: "Chờ", color: "#b45309", bg: "#fef3c7" },
-    PROCESSING: { icon: "…", label: "Xử lý", color: "#7c3aed", bg: "#ede9fe" },
-    ERROR: { icon: "!", label: "Lỗi", color: "#dc2626", bg: "#fee2e2" },
+    DONE: { icon: "✓", label: "Đã bóc tách", color: "#16a34a", bg: "#dcfce7" },
+    PENDING: { icon: "•", label: "Chưa xử lý", color: "#b45309", bg: "#fef3c7" },
+    PROCESSING: { icon: "…", label: "Đang xử lý...", color: "#7c3aed", bg: "#ede9fe" },
+    ERROR: { icon: "!", label: "Lỗi xử lý", color: "#dc2626", bg: "#fee2e2" },
   };
-  const s = map[status] || { icon: "•", label: status, color: "#6b7280", bg: "#f3f4f6" };
+  const key = String(status || "").toUpperCase();
+  const s = map[key] || { icon: "•", label: status || "--", color: "#6b7280", bg: "#f3f4f6" };
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 8px", borderRadius: 12, fontSize: 11, fontWeight: 700, color: s.color, background: s.bg }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: 700, color: s.color, background: s.bg, whiteSpace: "nowrap" }}>
       {s.icon} {s.label}
     </span>
   );

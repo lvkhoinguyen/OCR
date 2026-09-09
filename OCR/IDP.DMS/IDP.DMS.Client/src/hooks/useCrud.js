@@ -96,10 +96,31 @@ export function toForm(row, emptyForm) {
   return next;
 }
 
+const statusTranslations = {
+  DRAFT: "Bản nháp",
+  PENDING: "Chờ kiểm duyệt",
+  WAITING_APPROVAL: "Chờ kiểm duyệt",
+  APPROVED: "Đã phê duyệt",
+  NEEDS_SUPPLEMENT: "Cần bổ sung",
+  REJECTED: "Từ chối",
+  PUBLISHED: "Đã xuất bản",
+  CONFIRMED: "Đã xác nhận",
+  ACTIVE: "Hoạt động",
+  INACTIVE: "Ngừng hoạt động",
+  DONE: "Đã bóc tách",
+  PROCESSING: "Đang xử lý...",
+  ERROR: "Lỗi xử lý",
+  CANCELLED: "Đã hủy"
+};
+
 /** Formats a table cell value for display. */
 export function formatCell(value) {
   if (value == null || value === "") return "-";
-  if (typeof value === "string" && value.includes("T00:00:00")) return value.slice(0, 10);
+  if (typeof value === "string") {
+    if (value.includes("T00:00:00")) return value.slice(0, 10);
+    const upper = value.trim().toUpperCase();
+    if (statusTranslations[upper]) return statusTranslations[upper];
+  }
   return String(value);
 }
 

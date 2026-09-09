@@ -63,6 +63,7 @@ namespace IDP.DMS.Api.Controllers
 
         #region Database Initialization & Resources Summary
 
+        [AllowAnonymous]
         [HttpPost("initialize")]
         public async Task<IActionResult> InitializeDatabase()
         {
@@ -71,6 +72,7 @@ namespace IDP.DMS.Api.Controllers
             return Ok(new { message = "Database tables are ready." });
         }
 
+        [AllowAnonymous]
         [HttpGet("resources")]
         public IActionResult GetResources()
         {
@@ -1062,6 +1064,22 @@ namespace IDP.DMS.Api.Controllers
         public async Task<IActionResult> ApproveBorrowRequest(long id, [FromBody] BorrowApproveRequest request)
         {
             var result = await _dmsService.ApproveBorrowRequestAsync(id, request);
+            return Ok(result);
+        }
+
+        [HttpPost("borrow-requests/{id:long}/return")]
+        public async Task<IActionResult> ReturnBorrowRequest(long id, [FromBody] Gd2BorrowActionRequest? request)
+        {
+            var req = request ?? new Gd2BorrowActionRequest("thu-kho", "Đã nhận trả hồ sơ hoàn tất");
+            var result = await _dmsService.ReturnBorrowFlowAsync(id, req);
+            return Ok(result);
+        }
+
+        [HttpPost("borrow-requests/{id:long}/recall")]
+        public async Task<IActionResult> RecallBorrowRequest(long id, [FromBody] Gd2BorrowActionRequest? request)
+        {
+            var req = request ?? new Gd2BorrowActionRequest("thu-kho", "Đã thu hồi hồ sơ/quyền khai thác");
+            var result = await _dmsService.RecallBorrowFlowAsync(id, req);
             return Ok(result);
         }
 

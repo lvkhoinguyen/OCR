@@ -18,11 +18,13 @@ import {
   Trash2,
   Filter,
   Eye,
-  ChevronRight
+  ChevronRight,
+  QrCode
 } from "lucide-react";
 import { uiApi } from "../../services/uiApi";
 import { StatusBadge } from "../shared/SharedComponents";
 import DocumentPanel, { formatFileSize } from "./DocumentPanel";
+import ArchiveLabelModal from "../ArchiveLabelModal";
 
 export default function DossierScreen({ mode }) {
   const [activeTab, setActiveTab] = useState("FORM"); // "FORM" | "LIST"
@@ -32,6 +34,7 @@ export default function DossierScreen({ mode }) {
   const [dossierTypes, setDossierTypes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState(null);
+  const [labelModalItem, setLabelModalItem] = useState(null);
 
   // Form State
   const [currentDossierId, setCurrentDossierId] = useState(null);
@@ -379,7 +382,7 @@ export default function DossierScreen({ mode }) {
       }
 
       const successMsg = targetStatus === "PENDING"
-        ? `Đã gửi hồ sơ "${form.code}" lên Lãnh đạo kiểm duyệt thành công! Trạng thái: Chờ duyệt (PENDING).`
+        ? `Đã gửi hồ sơ "${form.code}" lên Lãnh đạo kiểm duyệt thành công! Trạng thái: Chờ duyệt (PENDING). Hồ sơ đã chuyển sang menu [Kiểm duyệt văn bản đã tách ➔ Hồ sơ chờ phê duyệt].`
         : `Đã lưu tạm nháp hồ sơ "${form.code}" thành công! Trạng thái: Lưu nháp (DRAFT).`;
 
       setNotice({ type: "success", text: successMsg });
@@ -426,7 +429,10 @@ export default function DossierScreen({ mode }) {
         });
       } catch {}
 
-      setNotice({ type: "success", text: `Đã gửi duyệt hồ sơ "${dossier.code}" thành công! Trạng thái: Chờ duyệt (PENDING).` });
+      setNotice({
+        type: "success",
+        text: `Đã gửi duyệt hồ sơ "${dossier.code}" thành công! Trạng thái: Chờ duyệt (PENDING). Hồ sơ đã chuyển sang menu [Kiểm duyệt văn bản đã tách ➔ Hồ sơ chờ phê duyệt].`
+      });
       await loadData();
     } catch (err) {
       setNotice({ type: "error", text: `Lỗi gửi duyệt: ${err.message}` });
@@ -597,14 +603,37 @@ export default function DossierScreen({ mode }) {
               </div>
 
               {currentDossierId && (
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={handleResetForm}
-                  style={{ fontSize: "12px", padding: "4px 10px" }}
-                >
-                  <RotateCcw size={13} /> Nhập hồ sơ mới
-                </button>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => {
+                      const d = dossiers.find(x => x.id === currentDossierId);
+                      if (d) {
+                        setLabelModalItem({
+                          id: d.id,
+                          code: d.code,
+                          name: d.title,
+                          location: getLocationPath(d.storageId),
+                          createdAt: d.createdAt,
+                          entityType: "DOSSIER"
+                        });
+                      }
+                    }}
+                    style={{ fontSize: "12px", padding: "4px 10px", color: "#4f46e5", background: "#eef2ff" }}
+                    title="In Barcode / QR Code hồ sơ"
+                  >
+                    <QrCode size={13} /> In nhãn Barcode/QR
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={handleResetForm}
+                    style={{ fontSize: "12px", padding: "4px 10px" }}
+                  >
+                    <RotateCcw size={13} /> Nhập hồ sơ mới
+                  </button>
+                </div>
               )}
             </div>
 
@@ -931,7 +960,7 @@ export default function DossierScreen({ mode }) {
                   }}
                 >
                   <Save size={16} />
-                  <span>{loading ? "Đang lưu..." : "Lưu tạm (DRAFT)"}</span>
+                  <span>{loading ? "Đang lưu..." : "Lưu bản nháp"}</span>
                 </button>
 
                 {/* Nút [Gửi kiểm duyệt] */}
@@ -997,11 +1026,11 @@ export default function DossierScreen({ mode }) {
                   style={{ width: "180px" }}
                 >
                   <option value="ALL">Tất cả trạng thái</option>
-                  <option value="DRAFT">Lưu nháp (DRAFT)</option>
-                  <option value="WAITING_APPROVAL">Chờ duyệt (WAITING_APPROVAL)</option>
-                  <option value="APPROVED">Đã duyệt (APPROVED)</option>
-                  <option value="REJECTED">Từ chối (REJECTED)</option>
-                  <option value="NEEDS_SUPPLEMENT">Cần bổ sung (NEEDS_SUPPLEMENT)</option>
+                  <option value="DRAFT">Bản nháp</option>
+                  <option value="WAITING_APPROVAL">Chờ kiểm duyệt</option>
+                  <option value="APPROVED">Đã phê duyệt</option>
+                  <option value="REJECTED">Từ chối</option>
+                  <option value="NEEDS_SUPPLEMENT">Cần bổ sung</option>
                 </select>
               </div>
 
@@ -1091,6 +1120,24 @@ export default function DossierScreen({ mode }) {
                             <button
                               type="button"
                               className="btn"
+                              onClick={() => setLabelModalItem({
+                                id: dossier.id,
+                                code: dossier.code,
+                                name: dossier.title,
+                                location: getLocationPath(dossier.storageId),
+                                createdAt: dossier.createdAt,
+                                entityType: "DOSSIER"
+                              })}
+                              title="In Barcode / QR Code hồ sơ"
+                              style={{ padding: "4px 8px", fontSize: "12px", color: "#4f46e5", background: "#eef2ff" }}
+                            >
+                              <QrCode size={14} />
+                              <span style={{ marginLeft: "4px" }}>In nhãn</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              className="btn"
                               onClick={() => handleEditDossier(dossier)}
                               title="Xem & Chỉnh sửa hồ sơ"
                               style={{ padding: "4px 8px", fontSize: "12px", color: "#0284c7" }}
@@ -1135,6 +1182,13 @@ export default function DossierScreen({ mode }) {
             </table>
           </div>
         </div>
+      )}
+
+      {labelModalItem && (
+        <ArchiveLabelModal
+          item={labelModalItem}
+          onClose={() => setLabelModalItem(null)}
+        />
       )}
     </div>
   );

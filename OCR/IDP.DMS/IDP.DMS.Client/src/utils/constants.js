@@ -1,25 +1,57 @@
 // Shared constants used across multiple screens in IDP.DMS Client
 
 export const moduleMap = {
+  // ── Các nhóm nghiệp vụ chuẩn hóa mới ──────────────────────────────
+  "Tạo kho & Thêm dữ liệu": "storage",
+  "Chọn kho & Bóc tách dữ liệu": "gd2-ocr",
+  "Kiểm duyệt văn bản đã tách": "gd2-workflow",
+  "Số hóa & OCR": "gd2-ocr",
+  "Quản lý Hồ sơ": "gd2-documents",
+  "Kiểm duyệt": "gd2-workflow",
+  "Tra cứu & Mượn trả": "dossiers",
+  "Báo cáo & Thống kê": "gd2-reports",
+  "Cấu hình hệ thống": "permission-groups",
+  "Trợ giúp & Hướng dẫn": "user-guide",
+  "Hướng dẫn sử dụng": "user-guide",
+
+  // ── Tương thích ngược ─────────────────────────────────────────────
   "Quản trị hệ thống": "admin",
   "Quản trị đơn vị": "admin",
   "Quản trị nơi sử dụng": "admin",
   "Danh mục kho lưu trữ": "storage",
   "Nhập liệu & Số hóa hồ sơ": "dossiers",
   "Nhập liệu": "dossiers",
-  "Kiểm duyệt": "approval",
   "Khai thác": "borrow",
   "Danh mục": "storage",
   "Báo cáo": "reports",
   "Duyệt phiếu": "borrow",
   "Phê duyệt & Xuất bản hồ sơ": "approval",
   "Tra cứu & Đăng ký mượn hồ sơ": "borrow",
-  "Báo cáo & Thống kê": "reports",
   "Duyệt đăng ký mượn hồ sơ": "borrow",
-  "Công cụ AI & OCR": "dossiers",
+  "Công cụ AI & OCR": "gd2-ocr",
 };
 
 export const itemResourceMap = {
+  // ── Các mục Menu chuẩn hóa mới (Dành cho người dùng văn phòng) ────
+  "Bóc tách văn bản AI": "gd2-ocr",
+  "Nhập hồ sơ hàng loạt": "import-jobs",
+  "Danh mục Hồ sơ lưu trữ": "gd2-documents",
+  "Quản lý Kho - Kệ - Hộp": "storage",
+  "Hồ sơ chờ phê duyệt": "gd2-workflow",
+  "Hồ sơ yêu cầu bổ sung": "gd2-review-supplement",
+  "Ký số văn bản": "gd2-signature",
+  "Tìm kiếm hồ sơ": "dossiers",
+  "Đăng ký mượn hồ sơ": "gd2-borrow-process",
+  "Duyệt phiếu mượn": "borrow",
+  "Dashboard tổng quan": "gd2-leadership",
+  "Báo cáo số hóa & Xuất file": "gd2-reports",
+  "Quản trị người dùng & Phân quyền": "permission-groups",
+  "Danh mục dùng chung": "categories",
+  "Hướng dẫn sử dụng": "user-guide",
+  "Cẩm nang người dùng": "user-guide",
+  "Trợ giúp & Hướng dẫn": "user-guide",
+
+  // ── Các mục tương thích ngược ─────────────────────────────────────
   "Quản lý Menu": "menus",
   "Quản lý Nhóm quyền & Nhóm quyền báo cáo": "permission-groups",
   "Quản lý Đơn vị / Cây đơn vị": "org-units",
@@ -29,7 +61,6 @@ export const itemResourceMap = {
   "Cấu hình người dùng & Nhóm người duyệt": "approval-configs",
   "Định nghĩa danh mục riêng & Phòng ban": "departments",
   "Danh mục loại hồ sơ & Cấu hình loại": "gd2-dossier-types",
-  "Quản lý Kho - Kệ - Tầng - Hộp": "storage",
   "Mẫu loại văn bản, Phông lưu trữ & Mục lục": "document-types",
   "Thêm mới & Quản lý danh sách hồ sơ": "gd2-documents",
   "Quản lý văn bản thành phần": "documents",
@@ -59,7 +90,6 @@ export const itemResourceMap = {
   "Quản lý nơi sử dụng": "org-units",
   "Định nghĩa danh mục": "categories",
   "Danh mục đơn vị hành chính": "admin-units",
-  "Danh mục dùng chung": "categories",
   "Quản lý cây đơn vị": "org-units",
   "Quản trị người dùng": "users",
   "Danh sách nhóm báo cáo": "report-groups",
@@ -134,3 +164,52 @@ export const emptySimple = { code: "", name: "", parentId: "", status: "ACTIVE",
 // Technical model file detection
 export const technicalModelPattern = /\.(ifc|stl|obj|step|stp)$/i;
 export const isTechnicalModelFile = (fileName) => technicalModelPattern.test(String(fileName || ""));
+
+// Menu chuẩn hóa thân thiện với người dùng văn phòng
+export const designMenuGroups = [
+  {
+    title: "Tạo kho & Thêm dữ liệu",
+    items: [
+      "Quản lý Kho - Kệ - Hộp",
+      "Danh mục Hồ sơ lưu trữ",
+      "Nhập hồ sơ hàng loạt"
+    ]
+  },
+  {
+    title: "Chọn kho & Bóc tách dữ liệu",
+    items: [
+      "Bóc tách văn bản AI"
+    ]
+  },
+  {
+    title: "Kiểm duyệt văn bản đã tách",
+    items: [
+      "Hồ sơ chờ phê duyệt",
+      "Hồ sơ yêu cầu bổ sung",
+      "Ký số văn bản"
+    ]
+  },
+  {
+    title: "Tra cứu & Mượn trả",
+    items: [
+      "Tìm kiếm hồ sơ",
+      "Đăng ký mượn hồ sơ",
+      "Duyệt phiếu mượn"
+    ]
+  },
+  {
+    title: "Báo cáo & Thống kê",
+    items: [
+      "Dashboard tổng quan",
+      "Báo cáo số hóa & Xuất file"
+    ]
+  },
+  {
+    title: "Cấu hình hệ thống",
+    items: [
+      "Quản trị người dùng & Phân quyền",
+      "Danh mục dùng chung"
+    ]
+  }
+];
+

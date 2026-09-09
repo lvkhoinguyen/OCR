@@ -300,44 +300,44 @@ namespace IDP.DMS.Api.Controllers
         [HttpGet("dossier-borrow/dashboard")]
         public async Task<IActionResult> GetDossierBorrowDashboard([FromQuery] string? status, [FromQuery] string? securityLevel, [FromQuery] string? exploitMode)
         {
-            return Ok(await _gd2Service.GetDossierBorrowDashboardAsync(status, securityLevel, exploitMode));
+            return Ok(await _oracleService.GetDossierBorrowDashboardAsync(status, securityLevel, exploitMode));
         }
 
         [HttpPost("archive-dossiers")]
         public async Task<IActionResult> SaveArchiveDossier([FromBody] Gd2ArchiveDossierRequest request)
         {
-            return Ok(await _gd2Service.SaveArchiveDossierAsync(request));
+            return Ok(await _oracleService.SaveArchiveDossierAsync(request));
         }
 
         [HttpPost("borrow-requests")]
         public async Task<IActionResult> RegisterBorrow([FromBody] Gd2BorrowRegistrationRequest request)
         {
-            var borrow = await _gd2Service.RegisterBorrowAsync(request);
+            var borrow = await _oracleService.RegisterBorrowAsync(request);
             return Created($"/api/dms/gd2/borrow-requests/{borrow.Id}", borrow);
         }
 
         [HttpPost("borrow-requests/{id:long}/approve")]
         public async Task<IActionResult> ApproveBorrow(long id, [FromBody] Gd2BorrowActionRequest request)
         {
-            return Ok(await _gd2Service.ApproveBorrowAsync(id, request));
+            return Ok(await _oracleService.ApproveBorrowFlowAsync(id, request));
         }
 
         [HttpPost("borrow-requests/{id:long}/handover")]
         public async Task<IActionResult> HandoverBorrow(long id, [FromBody] Gd2BorrowActionRequest request)
         {
-            return Ok(await _gd2Service.HandoverBorrowAsync(id, request));
+            return Ok(await _oracleService.HandoverBorrowFlowAsync(id, request));
         }
 
         [HttpPost("borrow-requests/{id:long}/return")]
         public async Task<IActionResult> ReturnBorrow(long id, [FromBody] Gd2BorrowActionRequest request)
         {
-            return Ok(await _gd2Service.ReturnBorrowAsync(id, request));
+            return Ok(await _oracleService.ReturnBorrowFlowAsync(id, request));
         }
 
         [HttpPost("borrow-requests/{id:long}/recall")]
         public async Task<IActionResult> RecallBorrow(long id, [FromBody] Gd2BorrowActionRequest request)
         {
-            return Ok(await _gd2Service.RecallBorrowAsync(id, request));
+            return Ok(await _oracleService.RecallBorrowFlowAsync(id, request));
         }
 
         [HttpPost("documents/{documentId:long}/versions")]
@@ -408,7 +408,7 @@ namespace IDP.DMS.Api.Controllers
             [FromQuery] string? department,
             [FromQuery] string? dossierType)
         {
-            return Ok(await _gd2Service.GetExecutiveDashboardAsync(fromDate, toDate, department, dossierType));
+            return Ok(await _oracleService.GetExecutiveDashboardAsync(fromDate, toDate, department, dossierType));
         }
 
         [HttpGet("reports/runs")]

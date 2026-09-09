@@ -39,7 +39,40 @@ namespace IDP.DMS.Api.Middlewares
                 await context.Response.WriteAsJsonAsync(new
                 {
                     error = "BUSINESS_RULE_VIOLATION",
-                    message = "Dữ liệu đã tồn tại, vui lòng kiểm tra mã trước khi lưu."
+                    message = "Dữ liệu đã tồn tại trong hệ thống, vui lòng kiểm tra mã hoặc tên trước khi lưu."
+                });
+            }
+            catch (OracleException exception) when (exception.Number == 2292)
+            {
+                _logger.LogWarning("Oracle foreign key constraint violation on {Method} {Path}",
+                    context.Request.Method, context.Request.Path);
+                context.Response.StatusCode = StatusCodes.Status422UnprocessableEntity;
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    error = "DATA_INTEGRITY_VIOLATION",
+                    message = "Dữ liệu đang được liên kết bởi các bản ghi khác trong hệ thống, không thể xóa."
+                });
+            }
+            catch (OracleException exception) when (exception.Number == 12899)
+            {
+                _logger.LogWarning("Oracle value too large on {Method} {Path}",
+                    context.Request.Method, context.Request.Path);
+                context.Response.StatusCode = StatusCodes.Status422UnprocessableEntity;
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    error = "DATA_TOO_LARGE",
+                    message = "Nội dung văn bản vượt quá độ dài tối đa cho phép của trường thông tin."
+                });
+            }
+            catch (ArgumentException exception)
+            {
+                _logger.LogWarning("Invalid argument on {Method} {Path}: {Message}",
+                    context.Request.Method, context.Request.Path, exception.Message);
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    error = "BAD_REQUEST",
+                    message = exception.Message
                 });
             }
             catch (UnauthorizedAccessException exception)

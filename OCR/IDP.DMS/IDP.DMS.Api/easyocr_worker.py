@@ -66,8 +66,28 @@ def main():
 
     try:
         import easyocr
+        import cv2
+        import numpy as np
+
         reader = easyocr.Reader(['vi', 'en'], gpu=False, verbose=False)
-        results = reader.readtext(image_path, detail=0)
+        
+        # Tiền xử lý ảnh để nhận diện rõ nét dấu tiếng Việt
+        input_data = image_path
+        try:
+            cv_img = cv2.imread(image_path)
+            if cv_img is not None:
+                h, w = cv_img.shape[:2]
+                # Nếu ảnh nhỏ hoặc vùng crop (chiều cao < 120px), phóng to x2-x3 và tăng tương phản
+                if h < 120 or w < 500:
+                    scale = max(2.5, min(4.0, 150.0 / max(h, 1)))
+                    resized = cv2.resize(cv_img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_CUBIC)
+                    gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+                    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+                    input_data = clahe.apply(gray)
+        except Exception:
+            input_data = image_path
+
+        results = reader.readtext(input_data, detail=0)
         lines = [r.strip() for r in results if r and r.strip()]
         full_text, meta = parse_vietnamese_admin_doc(lines)
 

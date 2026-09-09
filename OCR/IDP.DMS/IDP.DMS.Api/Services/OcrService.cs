@@ -533,7 +533,14 @@ public class OcrService : IDisposable
     {
 
         var apiKey = _config["Gemini:ApiKey"];
-        var model  = _config["Gemini:Model"] ?? "gemini-3.6-flash";
+        var configuredModel = _config["Gemini:Model"];
+        var primaryModel = string.IsNullOrWhiteSpace(configuredModel) || configuredModel.Contains("1.5")
+            ? "gemini-3.1-flash-lite"
+            : configuredModel;
+
+        var candidateModels = new[] { primaryModel, "gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.8-flash" }
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
 
         if (string.IsNullOrWhiteSpace(apiKey) || apiKey == "YOUR_GEMINI_API_KEY_HERE")
             throw new InvalidOperationException("Chưa cấu hình Gemini API Key.");
@@ -551,10 +558,11 @@ public class OcrService : IDisposable
         };
 
         var prompt = """
-Bạn là hệ thống OCR chuyên nghiệp cho văn bản hành chính Việt Nam.
-Nhiệm vụ: Phân tích hình ảnh tài liệu và trả về KẾT QUẢ GỒM HAI PHẦN theo đúng định dạng sau:
+Bạn là hệ thống AI OCR chuyên nghiệp cho văn bản tiếng Việt.
+Nhiệm vụ: Phân tích hình ảnh tài liệu và trích xuất nội dung chữ tiếng Việt chính xác 100%, bảo toàn từng từ, dấu câu, dấu thanh.
 
-PHẦN 1 — METADATA JSON (bắt buộc, trả về ngay trước toàn văn):
+TRƯỜNG HỢP 1 — NẾU ĐÂY LÀ VĂN BẢN HÀNH CHÍNH (có cơ quan ban hành, số hiệu, ngày tháng, trích yếu):
+Trả về KẾT QUẢ GỒM HAI PHẦN:
 [METADATA_JSON]
 {
   "documentNumber": "<số hiệu/ký hiệu văn bản, ví dụ: 123/QĐ-UBND>",
@@ -565,14 +573,10 @@ PHẦN 1 — METADATA JSON (bắt buộc, trả về ngay trước toàn văn):
 }
 [/METADATA_JSON]
 
-PHẦN 2 — TOÀN VĂN NỘI DUNG (ngay sau PHẦN 1):
-Chép lại TOÀN BỘ nội dung văn bản theo yêu cầu sau:
-1. Giữ nguyên bố cục: Quốc hiệu, Tiêu ngữ, tên cơ quan, số/ký hiệu, ngày tháng, trích yếu, căn cứ pháp lý.
-2. Giữ nguyên cấu trúc: tiêu đề, đoạn văn, điều/khoản/điểm, danh sách, bảng (dùng | phân cách cột).
-3. Ghi rõ nơi nhận, chức vụ/thẩm quyền ký, họ tên người ký. Dùng nhãn [DẤU MỘC], [CHỮ KÝ], [KHÔNG ĐỌC RÕ] khi cần.
-4. Giữ nguyên chính tả, dấu tiếng Việt, chữ hoa/thường, số liệu, đơn vị, dấu câu.
-5. Nếu nhiều trang: đặt --- Trang N --- trước mỗi trang.
-6. Chỉ trả về văn bản thuần UTF-8; không Markdown, không lời mở đầu, không nhận xét.
+TOÀN VĂN NỘI DUNG: Chép lại toàn bộ văn bản trung thực, đúng cấu trúc, đúng chính tả.
+
+TRƯỜNG HỢP 2 — NẾU ĐÂY LÀ ĐOẠN VĂN BẢN NGẮN, DÒNG CHỮ CẮT LẺ HOẶC VÙNG KHOANH ZONAL OCR:
+Chép lại ĐẦY ĐỦ VÀ CHÍNH XÁC TUYỆT ĐỐI TOÀN BỘ NỘI DUNG CHỮ tiếng Việt có trong ảnh. Không cần phần METADATA_JSON, không thêm lời bình, không bỏ sót từ nào.
 """;
 
         var requestBody = new
@@ -594,12 +598,8 @@ Chép lại TOÀN BỘ nội dung văn bản theo yêu cầu sau:
         var json = JsonSerializer.Serialize(requestBody);
 
         bool isOAuthToken = apiKey.StartsWith("ya29.", StringComparison.Ordinal);
-        var url = isOAuthToken
-            ? $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-            : $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
-
         var client = _httpClientFactory.CreateClient("Gemini");
-        client.Timeout = TimeSpan.FromSeconds(90);
+        client.Timeout = TimeSpan.FromSeconds(25);
         if (isOAuthToken)
             client.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
@@ -609,38 +609,38 @@ Chép lại TOÀN BỘ nội dung văn bản theo yêu cầu sau:
         HttpResponseMessage? response = null;
         string responseBody = string.Empty;
         Exception? lastException = null;
-        const int maxAttempts = 3;
 
-        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        foreach (var model in candidateModels)
         {
+            var url = isOAuthToken
+                ? $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+                : $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
+
             try
             {
                 using var content = new StringContent(json, Encoding.UTF8, "application/json");
-                response     = await client.PostAsync(url, content);
+                response = await client.PostAsync(url, content);
                 responseBody = await response.Content.ReadAsStringAsync();
-                if (response.IsSuccessStatusCode) break;
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("Gemini model '{Model}' succeeded for {Path}", model, imagePath);
+                    break;
+                }
 
-                var transient = response.StatusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests
-                    || (int)response.StatusCode >= 500;
-                lastException = new HttpRequestException(
-                    $"Gemini API lỗi {(int)response.StatusCode}: {responseBody}", null, response.StatusCode);
-                if (!transient) throw new InvalidOperationException($"Gemini API từ chối ({(int)response.StatusCode}): {responseBody}");
-                if (attempt == maxAttempts) throw lastException;
-
-                var delay = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(Math.Pow(2, attempt - 1));
-                _logger.LogWarning("Gemini transient {StatusCode}; retry {Next}/{Max}.", response.StatusCode, attempt + 1, maxAttempts);
-                response.Dispose(); response = null;
-                await Task.Delay(delay);
+                _logger.LogWarning("Gemini model '{Model}' returned {StatusCode}. Trying next candidate...", model, response.StatusCode);
+                lastException = new HttpRequestException($"Gemini model {model} lỗi {(int)response.StatusCode}: {responseBody}");
+                response.Dispose();
+                response = null;
             }
-            catch (Exception ex) when ((ex is HttpRequestException or TaskCanceledException) && attempt < maxAttempts)
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Gemini model '{Model}' threw exception. Trying next candidate...", model);
                 lastException = ex;
-                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt - 1)));
             }
         }
 
         if (response is null || !response.IsSuccessStatusCode)
-            throw lastException ?? new HttpRequestException("Gemini API không trả về kết quả.");
+            throw lastException ?? new HttpRequestException("Không thể kết nối dịch vụ Gemini API.");
 
         using (response) { }
 
@@ -737,8 +737,14 @@ Chép lại TOÀN BỘ nội dung văn bản theo yêu cầu sau:
             using var process = System.Diagnostics.Process.Start(startInfo);
             if (process == null) throw new InvalidOperationException("Không thể khởi chạy tiến trình EasyOCR.");
 
-            var output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit(35000);
+            var outputTask = process.StandardOutput.ReadToEndAsync();
+            if (!process.WaitForExit(8000))
+            {
+                try { process.Kill(true); } catch { }
+                _logger.LogWarning("EasyOCR worker timed out on {ImagePath}", imagePath);
+                return new DigitizeMetadataResult(DigitizeMetadata.Empty, "(Thời gian bóc tách AI vượt giới hạn. Vui lòng đối soát thủ công hoặc khoanh vùng Zonal OCR)", "fallback");
+            }
+            var output = outputTask.GetAwaiter().GetResult();
 
             using var doc = JsonDocument.Parse(output);
             var root = doc.RootElement;
@@ -779,7 +785,14 @@ Chép lại TOÀN BỘ nội dung văn bản theo yêu cầu sau:
     private async Task<string> ExtractTextWithGemini(string imagePath)
     {
         var apiKey = _config["Gemini:ApiKey"];
-        var model  = _config["Gemini:Model"] ?? "gemini-3.6-flash";
+        var configuredModel = _config["Gemini:Model"];
+        var primaryModel = string.IsNullOrWhiteSpace(configuredModel) || configuredModel.Contains("1.5")
+            ? "gemini-3.1-flash-lite"
+            : configuredModel;
+
+        var candidateModels = new[] { primaryModel, "gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.8-flash" }
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
 
         if (string.IsNullOrWhiteSpace(apiKey) || apiKey == "YOUR_GEMINI_API_KEY_HERE")
             throw new Exception("Chưa cấu hình Gemini API Key. Vui lòng cập nhật 'Gemini:ApiKey' trong appsettings.json.");
@@ -825,61 +838,48 @@ Yêu cầu bắt buộc:
         };
 
         var json   = JsonSerializer.Serialize(requestBody);
-
-        // Detect auth type: OAuth token (AQ. prefix) uses Bearer header; API key (AIza...) uses ?key= param.
         bool isOAuthToken = apiKey.StartsWith("ya29.", StringComparison.Ordinal);
-        var url = isOAuthToken
-            ? $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-            : $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
 
         var client = _httpClientFactory.CreateClient("Gemini");
-        client.Timeout = TimeSpan.FromSeconds(60);
+        client.Timeout = TimeSpan.FromSeconds(30);
 
-        // Set Bearer auth header for OAuth tokens
         if (isOAuthToken)
             client.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
 
-        _logger.LogInformation("Calling Gemini Vision API with model {Model} (auth={AuthType})",
-            model, isOAuthToken ? "Bearer" : "ApiKey");
-
         HttpResponseMessage? response  = null;
         string responseBody            = string.Empty;
         Exception? lastException       = null;
-        const int maxAttempts          = 3;
 
-        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        foreach (var model in candidateModels)
         {
+            var url = isOAuthToken
+                ? $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+                : $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
+
+            _logger.LogInformation("Calling Gemini Vision API with model {Model} (auth={AuthType})",
+                model, isOAuthToken ? "Bearer" : "ApiKey");
+
             try
             {
                 using var content = new StringContent(json, Encoding.UTF8, "application/json");
-                response     = await client.PostAsync(url, content);
+                response = await client.PostAsync(url, content);
                 responseBody = await response.Content.ReadAsStringAsync();
-                if (response.IsSuccessStatusCode) break;
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("Gemini model '{Model}' succeeded for {Path}", model, imagePath);
+                    break;
+                }
 
-                var transient = response.StatusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests
-                    || (int)response.StatusCode >= 500;
-                lastException = new HttpRequestException(
-                    $"Gemini API lỗi {(int)response.StatusCode}: {responseBody}", null, response.StatusCode);
-                if (!transient)
-                    throw new InvalidOperationException($"Gemini API từ chối yêu cầu ({(int)response.StatusCode}): {responseBody}");
-                if (attempt == maxAttempts) throw lastException;
-
-                var delay = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(Math.Pow(2, attempt - 1));
-                _logger.LogWarning(
-                    "Gemini transient error {StatusCode}; retry {Next}/{Max} after {Delay} ms.",
-                    response.StatusCode, attempt + 1, maxAttempts, delay.TotalMilliseconds);
+                _logger.LogWarning("Gemini model '{Model}' returned {StatusCode}. Trying next candidate...", model, response.StatusCode);
+                lastException = new HttpRequestException($"Gemini model {model} lỗi {(int)response.StatusCode}: {responseBody}");
                 response.Dispose();
                 response = null;
-                await Task.Delay(delay);
             }
-            catch (Exception ex) when ((ex is HttpRequestException or TaskCanceledException) && attempt < maxAttempts)
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Gemini model '{Model}' threw exception. Trying next candidate...", model);
                 lastException = ex;
-                var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt - 1));
-                _logger.LogWarning(ex, "Gemini network error; retry {Next}/{Max} after {Delay} ms.",
-                    attempt + 1, maxAttempts, delay.TotalMilliseconds);
-                await Task.Delay(delay);
             }
         }
 

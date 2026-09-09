@@ -18,7 +18,8 @@ import {
   CheckCircle2,
   Archive,
   FileSearch,
-  Layers3
+  Layers3,
+  BookOpen
 } from "lucide-react";
 import { formatCell } from "../../hooks/useCrud";
 import { PanelTitle } from "./SharedComponents";
@@ -154,20 +155,22 @@ export function DataTable({ rows, columns, onEdit, onDelete, onUpload, onHistory
 
 export function iconFor(title) {
   if (!title) return <Layers3 size={18} />;
-  if (title.includes("AI") || title.includes("OCR")) return <Zap size={18} />;
-  if (title.includes("Dashboard")) return <Activity size={18} />;
-  if (title.includes("Tài khoản")) return <User size={18} />;
-  if (title.includes("mượn")) return <History size={18} />;
-  if (title.includes("Tài liệu") || title.includes("hồ sơ")) return <FileText size={18} />;
-  if (title.includes("Quy trình") || title.includes("phê duyệt")) return <GitMerge size={18} />;
-  if (title.includes("Số hóa") || title.includes("hệ thống")) return <Settings size={18} />;
-  if (title.includes("Quản trị") || title.includes("điều hành")) return <Shield size={18} />;
-  if (title.includes("Nhập")) return <Upload size={18} />;
+  // ── 6 nhóm nghiệp vụ chính chuẩn hóa ──────────────────────────────────────
+  if (title === "Tạo kho & Thêm dữ liệu" || title.includes("Tạo kho") || title.includes("Thêm dữ liệu")) return <Archive size={18} />;
+  if (title === "Chọn kho & Bóc tách dữ liệu" || title.includes("Bóc tách") || title.includes("AI") || title.includes("OCR")) return <Zap size={18} />;
+  if (title === "Kiểm duyệt văn bản đã tách" || title.includes("Kiểm duyệt") || title.includes("phê duyệt") || title.includes("Duyệt")) return <CheckCircle2 size={18} />;
+  if (title === "Tra cứu & Mượn trả" || title.includes("Tra cứu") || title.includes("mượn")) return <Search size={18} />;
+  if (title === "Báo cáo & Thống kê" || title.includes("Báo cáo") || title.includes("Thống kê") || title.includes("Dashboard")) return <Activity size={18} />;
+  if (title === "Cấu hình hệ thống" || title.includes("Cấu hình") || title.includes("Quản trị")) return <Settings size={18} />;
+  if (title.includes("Hướng dẫn") || title.includes("Trợ giúp") || title.includes("Cẩm nang")) return <BookOpen size={18} />;
+
+  // ── Các nhóm danh mục phụ & tương thích ngược ─────────────────────────────
+  if (title.includes("Danh mục") || title.includes("Kho")) return <Archive size={18} />;
+  if (title.includes("Số hóa")) return <Zap size={18} />;
+  if (title.includes("Quản lý Hồ sơ") || title.includes("Tài liệu") || title.includes("hồ sơ")) return <FileText size={18} />;
   if (title.includes("Tìm")) return <Search size={18} />;
-  if (title.includes("Duyệt") || title.includes("Kiểm")) return <CheckCircle2 size={18} />;
-  if (title.includes("Danh mục")) return <Archive size={18} />;
-  if (title.includes("Báo")) return <FileText size={18} />;
-  if (title.includes("Khai")) return <FileSearch size={18} />;
+  if (title.includes("hệ thống")) return <Settings size={18} />;
+  if (title.includes("Tài khoản")) return <User size={18} />;
   return <Layers3 size={18} />;
 }
 

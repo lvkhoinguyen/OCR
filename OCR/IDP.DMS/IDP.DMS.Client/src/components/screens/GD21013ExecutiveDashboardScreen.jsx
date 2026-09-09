@@ -45,7 +45,7 @@ export default function GD21013ExecutiveDashboardScreen({ mode = "report" }) {
       setDashboard(result);
       setNotice(null);
     } catch (error) {
-      setNotice({ type: "error", text: `Khong tai duoc dashboard: ${error.message}` });
+      setNotice({ type: "error", text: `Không tải được dữ liệu báo cáo: ${error.message}` });
     } finally {
       setLoading(false);
     }
@@ -84,11 +84,11 @@ export default function GD21013ExecutiveDashboardScreen({ mode = "report" }) {
     try {
       await logExport("EXCEL");
       const rows = [
-        ["Chi tieu", "Gia tri", "Don vi", "Tang/Giam"],
-        ...(dashboard.kpis || []).map(item => [item.label, item.value, item.unit, `${item.changePercent}%`]),
+        ["CHỈ TIÊU BÁO CÁO THỐNG KÊ", "GIÁ TRỊ", "ĐƠN VỊ", "BIẾN ĐỘNG"],
+        ...(dashboard.kpis || []).map(item => [item.label, item.value, item.unit, `${Number(item.changePercent) > 0 ? "+" : ""}${item.changePercent}%`]),
         [],
-        ["Nhan vien", "Phong ban", "Ho so xu ly", "Gio TB", "Dung han"],
-        ...(dashboard.performanceRanking || []).map(item => [item.employeeName, item.department, item.processedDossiers, item.averageHours, `${item.onTimeRate}%`])
+        ["STT", "CÁN BỘ", "PHÒNG BAN", "HỒ SƠ XỬ LÝ", "THỜI GIAN TB (GIỜ)", "ĐÚNG HẠN (SLA)"],
+        ...(dashboard.performanceRanking || []).map((item, idx) => [idx + 1, item.employeeName, item.department, item.processedDossiers, item.averageHours, `${item.onTimeRate}%`])
       ];
       const html = `<table>${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</table>`;
       const blob = new Blob(["\ufeff", `<html><head><meta charset="UTF-8"></head><body>${html}</body></html>`], { type: "application/vnd.ms-excel;charset=utf-8" });
@@ -100,7 +100,7 @@ export default function GD21013ExecutiveDashboardScreen({ mode = "report" }) {
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      setNotice({ type: "success", text: "Da xuat Excel metadata KPI." });
+      setNotice({ type: "success", text: "Đã xuất báo cáo Excel thành công." });
     } catch (error) {
       setNotice({ type: "error", text: error.message });
     }
@@ -109,7 +109,7 @@ export default function GD21013ExecutiveDashboardScreen({ mode = "report" }) {
   async function exportPdf() {
     const reportWindow = window.open("", "_blank", "width=1100,height=760");
     if (!reportWindow) {
-      setNotice({ type: "error", text: "Trinh duyet dang chan cua so xuat PDF." });
+      setNotice({ type: "error", text: "Trình duyệt đang chặn cửa sổ xuất PDF. Vui lòng cho phép popup để xem bản in." });
       return;
     }
 
@@ -122,27 +122,30 @@ export default function GD21013ExecutiveDashboardScreen({ mode = "report" }) {
           <head><meta charset="UTF-8"><title>${escapeHtml(featureName)}</title>
           <style>
             body{font-family:Arial,sans-serif;padding:28px;color:#10233f}
-            h1{font-size:22px;margin:0 0 6px}
-            p{color:#64748b;margin:0 0 18px}
-            table{width:100%;border-collapse:collapse;margin-top:14px}
-            th,td{border:1px solid #cbd5e1;padding:9px;text-align:left}
-            th{background:#f1f5f9}
+            h1{font-size:22px;margin:0 0 6px;color:#0f172a}
+            p{color:#64748b;margin:0 0 18px;font-size:13px}
+            table{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px}
+            th,td{border:1px solid #cbd5e1;padding:8px 10px;text-align:left}
+            th{background:#f1f5f9;font-weight:600}
+            h3{margin:20px 0 8px;font-size:15px;color:#334155}
           </style></head>
           <body>
             <h1>${escapeHtml(featureName)}</h1>
-            <p>${escapeHtml(filters.fromDate)} - ${escapeHtml(filters.toDate)} | ${escapeHtml(filters.department || "Toan don vi")}</p>
-            <table><thead><tr><th>KPI</th><th>Gia tri</th><th>Don vi</th><th>Tang/Giam</th></tr></thead><tbody>
-              ${(dashboard.kpis || []).map(item => `<tr><td>${escapeHtml(item.label)}</td><td>${escapeHtml(item.value)}</td><td>${escapeHtml(item.unit)}</td><td>${escapeHtml(item.changePercent)}%</td></tr>`).join("")}
+            <p>Thời gian thống kê: Từ ${escapeHtml(filters.fromDate)} đến ${escapeHtml(filters.toDate)} | Đơn vị: ${escapeHtml(filters.department || "Toàn đơn vị")}</p>
+            <h3>1. Chỉ tiêu vận hành chính (KPI)</h3>
+            <table><thead><tr><th>Chỉ số</th><th>Giá trị</th><th>Đơn vị tính</th><th>Biến động kỳ</th></tr></thead><tbody>
+              ${(dashboard.kpis || []).map(item => `<tr><td>${escapeHtml(item.label)}</td><td><strong>${escapeHtml(item.value)}</strong></td><td>${escapeHtml(item.unit)}</td><td>${Number(item.changePercent) > 0 ? "+" : ""}${escapeHtml(item.changePercent)}%</td></tr>`).join("")}
             </tbody></table>
-            <table><thead><tr><th>Nhan vien</th><th>Phong ban</th><th>Ho so</th><th>Gio TB</th><th>Dung han</th></tr></thead><tbody>
-              ${(dashboard.performanceRanking || []).map(item => `<tr><td>${escapeHtml(item.employeeName)}</td><td>${escapeHtml(item.department)}</td><td>${item.processedDossiers}</td><td>${item.averageHours}</td><td>${item.onTimeRate}%</td></tr>`).join("")}
+            <h3>2. Bảng xếp hạng hiệu suất cán bộ</h3>
+            <table><thead><tr><th>STT</th><th>Họ tên cán bộ</th><th>Đơn vị / Phòng ban</th><th>Hồ sơ xử lý</th><th>Giờ TB</th><th>Tỷ lệ đúng hạn</th></tr></thead><tbody>
+              ${(dashboard.performanceRanking || []).map((item, idx) => `<tr><td>${idx + 1}</td><td><strong>${escapeHtml(item.employeeName)}</strong></td><td>${escapeHtml(item.department)}</td><td>${item.processedDossiers}</td><td>${item.averageHours}h</td><td>${item.onTimeRate}%</td></tr>`).join("")}
             </tbody></table>
             <script>window.onload=()=>window.print();<\/script>
           </body>
         </html>
       `);
       reportWindow.document.close();
-      setNotice({ type: "success", text: "Da mo ban in PDF Chart/KPI." });
+      setNotice({ type: "success", text: "Đã mở bản in PDF báo cáo." });
     } catch (error) {
       reportWindow.close();
       setNotice({ type: "error", text: error.message });
@@ -151,31 +154,31 @@ export default function GD21013ExecutiveDashboardScreen({ mode = "report" }) {
 
   const filterPanel = (
     <form className="gd21013-filter" onSubmit={applyFilters}>
-      <label>Tu ngay
+      <label>Từ ngày
         <input type="date" value={filters.fromDate} onChange={event => setFilter("fromDate", event.target.value)} />
       </label>
-      <label>Den ngay
+      <label>Đến ngày
         <input type="date" value={filters.toDate} onChange={event => setFilter("toDate", event.target.value)} />
       </label>
-      <label>Phong ban
+      <label>Phòng ban
         <select value={filters.department} onChange={event => setFilter("department", event.target.value)}>
-          <option value="">Toan don vi</option>
-          <option value="Hanh chinh">Hanh chinh</option>
-          <option value="Tai chinh">Tai chinh</option>
-          <option value="Nhan su">Nhan su</option>
-          <option value="Phap che">Phap che</option>
+          <option value="">Toàn đơn vị</option>
+          <option value="Hành chính">Hành chính</option>
+          <option value="Tài chính">Tài chính</option>
+          <option value="Nhân sự">Nhân sự</option>
+          <option value="Pháp chế">Pháp chế</option>
         </select>
       </label>
-      <label>Loai ho so
+      <label>Loại hồ sơ
         <select value={filters.dossierType} onChange={event => setFilter("dossierType", event.target.value)}>
-          <option value="">Tat ca</option>
-          <option value="Hành chính">Hanh chinh</option>
-          <option value="Tài chính">Tai chinh</option>
-          <option value="Nhân sự">Nhan su</option>
-          <option value="Pháp chế">Phap che</option>
+          <option value="">Tất cả</option>
+          <option value="Hành chính">Hành chính</option>
+          <option value="Tài chính">Tài chính</option>
+          <option value="Nhân sự">Nhân sự</option>
+          <option value="Pháp chế">Pháp chế</option>
         </select>
       </label>
-      <button className="btn primary" type="submit" disabled={loading}><Search size={14}/> Loc</button>
+      <button className="btn primary" type="submit" disabled={loading}><Search size={14}/> Lọc</button>
     </form>
   );
 
@@ -191,22 +194,22 @@ export default function GD21013ExecutiveDashboardScreen({ mode = "report" }) {
         ))}
       </div>
       <div className="gd21013-chart-panel">
-        <div className="gd21013-panel-head"><BarChart2 size={16}/> Ho so nhap moi</div>
+        <div className="gd21013-panel-head"><BarChart2 size={16}/> Hồ sơ nhập mới theo tháng</div>
         <div className="gd21013-bar-chart">
           {(dashboard.newDossierTrend || []).map(item => (
             <div className="gd21013-bar" key={item.label}>
-              <span style={{ height: `${Math.max(8, Number(item.value) / maxNew * 100)}%`, background: item.color }} title={`${item.label}: ${item.value}`}></span>
+              <span style={{ height: `${Math.max(8, Number(item.value) / maxNew * 100)}%`, background: item.color }} title={`${item.label}: ${item.value} hồ sơ`}></span>
               <em>{item.label}</em>
             </div>
           ))}
         </div>
       </div>
       <div className="gd21013-chart-panel">
-        <div className="gd21013-panel-head"><Activity size={16}/> Tan suat muon tra</div>
+        <div className="gd21013-panel-head"><Activity size={16}/> Tần suất mượn trả tài liệu</div>
         <div className="gd21013-line-bars">
           {(dashboard.borrowReturnTrend || []).map(item => (
             <div className="gd21013-rowbar" key={`${item.category}-${item.label}`}>
-              <label>{item.label} {item.category}</label>
+              <label>{item.label} ({item.category})</label>
               <span><i style={{ width: `${Math.max(10, Number(item.value) / maxBorrow * 100)}%`, background: item.color }}></i></span>
               <b>{Number(item.value).toLocaleString("vi-VN")}</b>
             </div>
@@ -219,7 +222,7 @@ export default function GD21013ExecutiveDashboardScreen({ mode = "report" }) {
   const rightPanel = (
     <div className="gd21013-right">
       <div className="gd21013-chart-panel">
-        <div className="gd21013-panel-head"><PieChart size={16}/> Ty le duyet SLA</div>
+        <div className="gd21013-panel-head"><PieChart size={16}/> Tỷ lệ trạng thái & SLA duyệt</div>
         <div className="gd21013-pie-wrap">
           <div className="gd21013-pie" style={{ background: pieGradient }}><span>{Math.round((Number(dashboard.approvalSlaPie?.[0]?.value || 0) / pieTotal) * 100)}%</span></div>
           <div className="gd21013-legend">
@@ -230,10 +233,10 @@ export default function GD21013ExecutiveDashboardScreen({ mode = "report" }) {
         </div>
       </div>
       <div className="gd21013-chart-panel">
-        <div className="gd21013-panel-head"><User size={16}/> Bang xep hang hieu suat</div>
+        <div className="gd21013-panel-head"><User size={16}/> Bảng xếp hạng hiệu suất cán bộ</div>
         <div className="table-wrap">
           <table>
-            <thead><tr><th>#</th><th>Can bo</th><th>Phong ban</th><th>Ho so</th><th>Gio TB</th><th>SLA</th></tr></thead>
+            <thead><tr><th>#</th><th>Cán bộ</th><th>Phòng ban</th><th>Hồ sơ</th><th>Giờ TB</th><th>SLA</th></tr></thead>
             <tbody>
               {(dashboard.performanceRanking || []).map((item, index) => (
                 <tr key={item.employeeCode}>
@@ -269,7 +272,7 @@ export default function GD21013ExecutiveDashboardScreen({ mode = "report" }) {
       midContent={filterPanel}
       actions={
         <>
-          <button className="btn primary" type="button" onClick={() => loadDashboard(filters)} disabled={loading}><RefreshCw size={14}/> Tai lai</button>
+          <button className="btn primary" type="button" onClick={() => loadDashboard(filters)} disabled={loading}><RefreshCw size={14}/> Tải lại</button>
           <button className="btn" type="button" onClick={exportPdf}><Download size={14}/> PDF Chart</button>
           <button className="btn" type="button" onClick={exportExcel}><Download size={14}/> Excel</button>
         </>

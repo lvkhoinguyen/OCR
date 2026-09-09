@@ -75,6 +75,9 @@ async function request(path, options = {}) {
     } catch {
       // API có thể trả plain text.
     }
+    if ((!detail || !detail.trim()) && (response.status === 500 || response.status === 502 || response.status === 503)) {
+      detail = "Không thể kết nối tới Backend API (port 5103). Vui lòng kiểm tra xem Backend .NET đã được khởi động chưa.";
+    }
     throw new Error(detail || `API ${path} failed with ${response.status}`);
   }
 
@@ -452,6 +455,10 @@ export const uiApi = {
   createBorrow: (payload) => request("/api/dms/borrow-requests", jsonOptions("POST", payload)),
   approveBorrow: (id, payload) =>
     request(`/api/dms/borrow-requests/${id}/approve`, jsonOptions("POST", payload)),
+  returnBorrow: (id, payload) =>
+    request(`/api/dms/gd2/borrow-requests/${id}/return`, jsonOptions("POST", payload)),
+  recallBorrow: (id, payload) =>
+    request(`/api/dms/gd2/borrow-requests/${id}/recall`, jsonOptions("POST", payload)),
   autoGenerateStorage: (payload) => request("/api/dms/storage-locations/auto-generate", jsonOptions("POST", payload)),
   crud: (type) => {
     const paths = {

@@ -458,11 +458,11 @@ export default function ApprovalScreen({ title }) {
               onChange={e => setFilterStatus(e.target.value)}
               style={{ width: "230px", fontWeight: "600" }}
             >
-              <option value="PENDING">⏳ Chờ duyệt (PENDING)</option>
-              <option value="APPROVED">✓ Đã duyệt (APPROVED)</option>
-              <option value="PUBLISHED">🚀 Đã xuất bản (PUBLISHED)</option>
-              <option value="NEEDS_SUPPLEMENT">⚠ Cần bổ sung (NEEDS_SUPPLEMENT)</option>
-              <option value="REJECTED">✕ Từ chối (REJECTED)</option>
+              <option value="PENDING">⏳ Chờ kiểm duyệt</option>
+              <option value="APPROVED">✓ Đã phê duyệt</option>
+              <option value="PUBLISHED">🚀 Đã xuất bản</option>
+              <option value="NEEDS_SUPPLEMENT">⚠ Cần bổ sung</option>
+              <option value="REJECTED">✕ Từ chối</option>
               <option value="ALL">📋 Tất cả trạng thái ({dossiers.length})</option>
             </select>
           </div>

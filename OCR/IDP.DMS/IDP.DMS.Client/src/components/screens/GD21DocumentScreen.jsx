@@ -14,10 +14,12 @@ import {
   Upload,
   X,
   Zap,
+  QrCode
 } from "lucide-react";
 import { uiApi } from "../../services/uiApi";
 import { useCrud, toPayload } from "../../hooks/useCrud";
 import { StatusBadge, OcrBadge, GD2FeatureLayout, TreeNode } from "../shared/SharedComponents";
+import ArchiveLabelModal from "../ArchiveLabelModal";
 import {
   emptyDocument,
   emptyDossier,
@@ -120,6 +122,7 @@ export default function GD21DocumentScreen() {
   const [savingDocument, setSavingDocument] = useState(false);
   const [geminiExtraction, setGeminiExtraction] = useState(null);
   const [extractingWithGemini, setExtractingWithGemini] = useState(false);
+  const [labelModalItem, setLabelModalItem] = useState(null);
   const fileInputRef = useRef(null);
   const createFileInputRef = useRef(null);
   const storageSelectionInitialized = useRef(false);
@@ -607,10 +610,10 @@ export default function GD21DocumentScreen() {
         value={dossiers.form.status || "DRAFT"}
         onChange={e => dossiers.setField("status", e.target.value)}
       >
-        <option value="DRAFT">DRAFT – Dự thảo</option>
-        <option value="PENDING">PENDING – Chờ duyệt</option>
-        <option value="APPROVED">APPROVED – Đã duyệt</option>
-        <option value="PUBLISHED">PUBLISHED – Đã xuất bản</option>
+        <option value="DRAFT">Bản nháp</option>
+        <option value="PENDING">Chờ kiểm duyệt</option>
+        <option value="APPROVED">Đã phê duyệt</option>
+        <option value="PUBLISHED">Đã xuất bản</option>
       </select>
       <div className="gd21-form-actions">
         <button className="btn primary" type="submit" disabled={savingDocument}><Save size={14}/> {savingDocument ? "Đang lưu..." : "Lưu vào kho"}</button>
@@ -647,8 +650,11 @@ export default function GD21DocumentScreen() {
           {["PDF", "DOCX", "TIFF", "IMAGE", "METADATA"].map(item => <option key={item}>{item}</option>)}
         </select>
         <select value={filters.status} onChange={e => setFilter("status", e.target.value)}>
-          <option value="">Mọi trạng thái</option>
-          {["DRAFT", "PENDING", "APPROVED", "PUBLISHED"].map(item => <option key={item}>{item}</option>)}
+          <option value="">Tất cả trạng thái</option>
+          <option value="DRAFT">Bản nháp</option>
+          <option value="PENDING">Chờ kiểm duyệt</option>
+          <option value="APPROVED">Đã phê duyệt</option>
+          <option value="PUBLISHED">Đã xuất bản</option>
         </select>
       </div>
       {showForm && dossierForm}
@@ -676,6 +682,7 @@ export default function GD21DocumentScreen() {
               <th>Tên file</th>
               <th>Trạng thái OCR</th>
               <th>Trạng thái văn bản</th>
+              <th style={{width: 80, textAlign: "center"}}>In nhãn</th>
             </tr>
           </thead>
           <tbody>
@@ -690,10 +697,28 @@ export default function GD21DocumentScreen() {
                 <td>{formatUploadedFileName(row.fileName) || "-"}</td>
                 <td><OcrBadge status={row.ocrStatus || "PENDING"} /></td>
                 <td><StatusBadge status={row.status || "DRAFT"} /></td>
+                <td style={{ textAlign: "center" }} onClick={e => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    title="In Barcode / QR Code"
+                    style={{ color: "#4f46e5" }}
+                    onClick={() => setLabelModalItem({
+                      id: row.id,
+                      code: row.code,
+                      name: row.title,
+                      entityType: "DOCUMENT",
+                      location: formatStorage(dossierById.get(Number(row.dossierId))?.storageId),
+                      createdAt: row.createdAt
+                    })}
+                  >
+                    <QrCode size={15} />
+                  </button>
+                </td>
               </tr>
             ))}
             {displayedDocuments.length === 0 && (
-              <tr><td colSpan="7" className="empty-cell">
+              <tr><td colSpan="8" className="empty-cell">
                 {selectedStorageId
                   ? "Kho này hiện chưa có tài liệu nào. Hãy bấm [Thêm mới] để tải tài liệu vào kho!"
                   : "Hiện chưa có tài liệu nào trong hệ thống. Hãy bấm [Thêm mới] để tải tài liệu!"}
@@ -779,6 +804,22 @@ export default function GD21DocumentScreen() {
           {Object.keys(unitLimits).map(code => <option key={code} value={code}>{code} · {unitLimits[code]}MB</option>)}
         </select>
         <button className="btn primary" disabled={!selectedDoc} onClick={() => fileInputRef.current?.click()}><Upload size={14}/> Upload</button>
+        <button
+          className="btn"
+          disabled={!selectedDoc}
+          onClick={() => setLabelModalItem({
+            id: selectedDoc.id,
+            code: selectedDoc.code,
+            name: selectedDoc.title,
+            entityType: "DOCUMENT",
+            location: formatStorage(dossierById.get(Number(selectedDoc.dossierId))?.storageId),
+            createdAt: selectedDoc.createdAt
+          })}
+          title="In tem Barcode / QR Code"
+          style={{ color: "#4f46e5" }}
+        >
+          <QrCode size={14} /> In nhãn
+        </button>
         <button className="btn warn" disabled={!selectedDoc?.fileName || extractingWithGemini} onClick={extractSelectedDocumentWithGemini}>
           <Zap size={14}/> {extractingWithGemini ? "Đang xử lý bằng AI..." : "Bóc tách dữ liệu"}
         </button>
@@ -788,7 +829,8 @@ export default function GD21DocumentScreen() {
   );
 
   return (
-    <GD2FeatureLayout
+    <>
+      <GD2FeatureLayout
         featureId="GD2-1"
         featureName="Quản lý tài liệu"
         description="Tạo mới, lưu trữ, phân loại cây thư mục/loại tài liệu, tìm kiếm full-text/metadata, xem trực tuyến, chỉnh sửa thuộc tính và xuất bản/xuất file."
@@ -831,5 +873,12 @@ export default function GD21DocumentScreen() {
         leftPanel={treePanel}
         rightPanel={<div className={`gd21-three-col ${isTechnicalModelFile(selectedDoc?.fileName) ? "model-mode" : ""}`}><div>{tablePanel}</div>{previewPanel}</div>}
       />
+      {labelModalItem && (
+        <ArchiveLabelModal
+          item={labelModalItem}
+          onClose={() => setLabelModalItem(null)}
+        />
+      )}
+    </>
   );
 }

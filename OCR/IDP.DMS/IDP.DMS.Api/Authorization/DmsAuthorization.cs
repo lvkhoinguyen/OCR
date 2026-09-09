@@ -93,6 +93,20 @@ public sealed class DmsPermissionHandler : AuthorizationHandler<DmsPermissionReq
             return [DmsPermissions.Submit, DmsPermissions.Review, DmsPermissions.Approve, DmsPermissions.Publish];
         }
 
+        if (path.Contains("/borrow-requests", StringComparison.Ordinal) ||
+            path.Contains("/borrow", StringComparison.Ordinal))
+        {
+            if (path.EndsWith("/approve", StringComparison.Ordinal) ||
+                path.EndsWith("/handover", StringComparison.Ordinal) ||
+                path.EndsWith("/return", StringComparison.Ordinal) ||
+                path.EndsWith("/recall", StringComparison.Ordinal))
+            {
+                return [DmsPermissions.Write, DmsPermissions.Approve, DmsPermissions.Review];
+            }
+
+            return [DmsPermissions.Read, DmsPermissions.Write];
+        }
+
         if (path.Contains("/review-", StringComparison.Ordinal) ||
             path.Contains("/review-content", StringComparison.Ordinal) ||
             path.Contains("/approve", StringComparison.Ordinal))
@@ -100,7 +114,8 @@ public sealed class DmsPermissionHandler : AuthorizationHandler<DmsPermissionReq
             return [DmsPermissions.Review, DmsPermissions.Approve, DmsPermissions.Publish];
         }
 
-        if (path.Contains("/dossiers", StringComparison.Ordinal))
+        if (path.Contains("/dossiers", StringComparison.Ordinal) ||
+            path.Contains("/documents", StringComparison.Ordinal))
         {
             return [DmsPermissions.Write, DmsPermissions.Approve, DmsPermissions.Publish, DmsPermissions.Review];
         }

@@ -544,12 +544,12 @@ export default function GD2619OcrConfirmationScreen({ title = "OCR AI & Scanning
       </div>
 
       <button className="btn" type="button" disabled={processing || loading || reviewReadyDossierIds.length === 0} onClick={submitForReview} style={{ minHeight: "44px", justifyContent: "center", background: "#16a34a", color: "#fff", borderColor: "#16a34a", fontWeight: 700 }}>
-        <Send size={15}/> Gửi kiểm duyệt (Bước 5)
+        <Send size={15}/> Gửi kiểm duyệt
       </button>
 
       {reviewHandoff && (
         <button className="btn ok" type="button" onClick={() => onOpenWorkflow?.(reviewHandoff)} style={{ minHeight: "48px", justifyContent: "center", background: "#7c3aed", color: "#fff", borderColor: "#7c3aed", fontWeight: 800 }}>
-          🚀 Chuyển sang Bước Kiểm tra & Phê duyệt (GĐ2-2)
+          🚀 Chuyển sang Kiểm duyệt hồ sơ
         </button>
       )}
 
@@ -578,13 +578,13 @@ export default function GD2619OcrConfirmationScreen({ title = "OCR AI & Scanning
           <>
             <button className="btn" disabled={processing || !selectedStorageId} onClick={() => loadStorageDocuments(selectedStorageId)}><RefreshCw size={14}/> Tải lại</button>
             <button className="btn ok" disabled={processing || selectedIds.length === 0} onClick={runSelectedDocuments}><Zap size={14}/> Bóc tách OCR đã chọn</button>
-            <button className="btn" disabled={processing || loading || reviewReadyDossierIds.length === 0} onClick={submitForReview} style={{ background: "#16a34a", color: "#fff", borderColor: "#16a34a" }}><Send size={14}/> Gửi kiểm duyệt (Bước 5)</button>
+            <button className="btn" disabled={processing || loading || reviewReadyDossierIds.length === 0} onClick={submitForReview} style={{ background: "#16a34a", color: "#fff", borderColor: "#16a34a" }}><Send size={14}/> Gửi kiểm duyệt</button>
           </>
         }
         actionRows={[
           { action: "Chọn Kho", description: "Truy vấn tập trung tất cả hồ sơ và tài liệu", result: "Danh sách đầy đủ, không lọc ảo trên RAM" },
           { action: "OCR linh hoạt", description: "Chọn một, chọn tất cả hoặc bóc tách nhanh", result: "OCR_STATUS và DESCRIPTION cập nhật vào Oracle" },
-          { action: "Gửi kiểm duyệt", description: "Gửi các hồ sơ có tài liệu OCR hoàn tất", result: "Xuất hiện tại hàng chờ GĐ2-2" }
+          { action: "Gửi kiểm duyệt", description: "Gửi các hồ sơ có tài liệu OCR hoàn tất", result: "Xuất hiện tại hàng chờ kiểm duyệt" }
         ]}
         validationItems={[
           { type: "required", label: "Kho lưu trữ", text: "Phải chọn Kho trước khi tải danh sách tài liệu." },
@@ -596,7 +596,7 @@ export default function GD2619OcrConfirmationScreen({ title = "OCR AI & Scanning
           { step: "2", label: "Tick chọn", desc: "Một / tất cả", color: "#0ea5e9" },
           { step: "3", label: "OCR", desc: "Theo Engine", color: "#f59e0b" },
           { step: "4", label: "Lưu DB", desc: "Status + nội dung", color: "#7c3aed" },
-          { step: "5", label: "Kiểm duyệt", desc: "GĐ2-2", color: "#22c55e" }
+          { step: "5", label: "Kiểm duyệt", desc: "Chờ duyệt", color: "#22c55e" }
         ]}
         leftPanel={leftPanel}
         rightPanel={rightPanel}

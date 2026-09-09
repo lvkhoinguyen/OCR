@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   RefreshCw,
   Archive,
@@ -50,6 +50,8 @@ export function exploitModeLabel(mode) {
 export default function GD22526DossierBorrowScreen({ mode = "catalog", title }) {
   const [activeTab, setActiveTab] = useState("screen");
   const [dashboard, setDashboard] = useState({ dossiers: [], borrowRequests: [] });
+  const [allDocs, setAllDocs] = useState([]);
+  const [dossierSearch, setDossierSearch] = useState("");
   const [selectedDossierId, setSelectedDossierId] = useState(null);
   const [filters, setFilters] = useState({ status: "", securityLevel: "", exploitMode: "" });
   const [notice, setNotice] = useState(null);
@@ -78,6 +80,19 @@ export default function GD22526DossierBorrowScreen({ mode = "catalog", title }) 
   const featureId = mode === "catalog" ? "GĐ2-25" : "GĐ2-26";
   const featureName = title || (mode === "catalog" ? "Hệ thống quản lý hồ sơ" : "Quy trình mượn, tra, khai thác hồ sơ");
 
+  const selectedDossierDocs = useMemo(() => {
+    if (!selectedDossier?.id) return [];
+    return allDocs.filter(d => Number(d.dossierId) === Number(selectedDossier.id));
+  }, [allDocs, selectedDossier]);
+
+  const displayedDossiers = useMemo(() => {
+    if (!dossierSearch.trim()) return dashboard.dossiers || [];
+    const q = dossierSearch.trim().toLowerCase();
+    return (dashboard.dossiers || []).filter(d =>
+      `${d.code} ${d.title} ${d.dossierType || ""} ${d.storageLocation || ""}`.toLowerCase().includes(q)
+    );
+  }, [dashboard.dossiers, dossierSearch]);
+
   useEffect(() => {
     loadDossierBorrow();
   }, []);
@@ -85,8 +100,12 @@ export default function GD22526DossierBorrowScreen({ mode = "catalog", title }) 
   async function loadDossierBorrow(nextFilters = filters) {
     try {
       setLoading(true);
-      const result = await uiApi.gd2.dossierBorrowDashboard(nextFilters);
+      const [result, docRes] = await Promise.all([
+        uiApi.gd2.dossierBorrowDashboard(nextFilters),
+        uiApi.crud("documents").list().catch(() => [])
+      ]);
       setDashboard(result);
+      setAllDocs(Array.isArray(docRes) ? docRes : (docRes?.items || []));
       setSelectedDossierId(current => current || result.dossiers?.[0]?.id || null);
       setNotice(null);
     } catch (error) {
@@ -139,7 +158,13 @@ export default function GD22526DossierBorrowScreen({ mode = "catalog", title }) 
   async function runBorrowAction(id, action) {
     try {
       const payload = { actor: action === "APPROVE" ? "lanh-dao" : "van-thu", note: `${action} phieu muon #${id}` };
-      if (action === "APPROVE") await uiApi.gd2.approveBorrow(id, payload);
+      if (action === "APPROVE") {
+        try {
+          await uiApi.gd2.approveBorrow(id, payload);
+        } catch {
+          await uiApi.approveBorrow(id, { approver: payload.actor, note: payload.note });
+        }
+      }
       if (action === "HANDOVER") await uiApi.gd2.handoverBorrow(id, payload);
       if (action === "RETURN") await uiApi.gd2.returnBorrow(id, payload);
       if (action === "RECALL") await uiApi.gd2.recallBorrow(id, payload);
@@ -184,18 +209,36 @@ export default function GD22526DossierBorrowScreen({ mode = "catalog", title }) 
         <Metric label="Quá hạn" value={dashboard.overdueCount || 0} />
         <Metric label="Đã trả/Thu hồi" value={dashboard.returnedCount || 0} />
       </div>
+      <div style={{ marginBottom: "10px" }}>
+        <input
+          value={dossierSearch}
+          onChange={e => setDossierSearch(e.target.value)}
+          placeholder="🔍 Tìm kiếm mã hoặc tên hồ sơ cần mượn..."
+          style={{ width: "100%", height: "36px", fontSize: "13px", padding: "0 10px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+        />
+      </div>
       <div className="table-wrap">
         <table>
-          <thead><tr><th>Hồ sơ</th><th>Bảo mật</th><th>Điều kiện</th><th>Hạn bản cứng</th></tr></thead>
+          <thead><tr><th>Hồ sơ ({displayedDossiers.length})</th><th>Bảo mật</th><th>Điều kiện</th><th>Hạn bản cứng</th></tr></thead>
           <tbody>
-            {(dashboard.dossiers || []).map(item => (
-              <tr key={item.id} className={Number(selectedDossier?.id) === Number(item.id) ? "row-selected" : ""} onClick={() => setSelectedDossierId(item.id)}>
-                <td><strong>{item.code}</strong><span className="gd22526-sub">{item.title}</span></td>
-                <td><span className={securityBadgeClass(item.securityLevel)}>{securityLevelLabel(item.securityLevel)}</span></td>
-                <td><small>{item.borrowCondition}</small></td>
-                <td>{item.maxHardCopyBorrowDays} ngày</td>
-              </tr>
-            ))}
+            {displayedDossiers.length === 0 ? (
+              <tr><td colSpan={4} style={{ textAlign: "center", padding: "20px", color: "#64748b" }}>Không tìm thấy hồ sơ nào.</td></tr>
+            ) : (
+              displayedDossiers.map(item => (
+                <tr key={item.id} className={Number(selectedDossier?.id) === Number(item.id) ? "row-selected" : ""} onClick={() => setSelectedDossierId(item.id)}>
+                  <td>
+                    <strong>{item.code}</strong>
+                    <span className="gd22526-sub">{item.title}</span>
+                    <div style={{ fontSize: "11px", color: "#059669", marginTop: "2px" }}>
+                      {item.status === "PUBLISHED" ? "● Đã xuất bản" : item.status === "APPROVED" ? "✓ Đã phê duyệt" : item.status}
+                    </div>
+                  </td>
+                  <td><span className={securityBadgeClass(item.securityLevel)}>{securityLevelLabel(item.securityLevel)}</span></td>
+                  <td><small>{item.borrowCondition}</small></td>
+                  <td>{item.maxHardCopyBorrowDays} ngày</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -230,8 +273,31 @@ export default function GD22526DossierBorrowScreen({ mode = "catalog", title }) 
       <form className="gd22526-card" onSubmit={registerBorrow}>
         <div className="gd22526-head"><FileSearch size={16}/> Phiếu đăng ký mượn</div>
         <div className="gd22526-selected">
-          <strong>{selectedDossier?.code || "--"}</strong>
-          <span>{selectedDossier?.title || "Chưa chọn hồ sơ"}</span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <strong>{selectedDossier?.code || "--"}</strong>
+              <div style={{ fontWeight: "600", fontSize: "13px", color: "#0f172a" }}>{selectedDossier?.title || "Chưa chọn hồ sơ"}</div>
+              <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                Kho: {selectedDossier?.storageLocation || "--"} · Trạng thái: {selectedDossier?.status || "PUBLISHED"}
+              </div>
+            </div>
+            <span style={{ fontSize: "11px", background: "#dcfce7", color: "#15803d", padding: "2px 8px", borderRadius: "10px", fontWeight: "600" }}>
+              {selectedDossierDocs.length} văn bản
+            </span>
+          </div>
+          {selectedDossierDocs.length > 0 && (
+            <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px dashed #cbd5e1", maxHeight: "120px", overflowY: "auto" }}>
+              <div style={{ fontSize: "11px", fontWeight: "600", color: "#475569", marginBottom: "4px" }}>Văn bản thành phần trong hồ sơ:</div>
+              {selectedDossierDocs.map(d => (
+                <div key={d.id} style={{ fontSize: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 0", color: "#334155" }}>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "75%" }} title={d.title}>
+                    📄 <strong>{d.code}</strong>: {d.title}
+                  </span>
+                  <span style={{ fontSize: "10px", color: "#059669", fontWeight: "600" }}>{d.status}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <input value={borrowForm.borrower} onChange={event => setBorrowForm({ ...borrowForm, borrower: event.target.value })} placeholder="Người mượn" />
         <select value={borrowForm.exploitMode} onChange={event => setBorrowForm({ ...borrowForm, exploitMode: event.target.value })}>

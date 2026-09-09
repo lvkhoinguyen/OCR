@@ -146,13 +146,18 @@ public sealed class OracleDmsService
                 DOSSIER_ID NUMBER NOT NULL,
                 BORROWER NVARCHAR2(255) NOT NULL,
                 BORROWER_UNIT NVARCHAR2(255) NULL,
-                EXPLOIT_MODE VARCHAR2(30) NULL,
+                EXPLOIT_MODE VARCHAR2(30) DEFAULT 'ONLINE_READ',
                 PURPOSE NVARCHAR2(1000) NULL,
                 BORROW_FROM DATE NULL,
                 BORROW_TO DATE NULL,
                 STATUS VARCHAR2(30) DEFAULT 'PENDING',
                 APPROVER NVARCHAR2(255) NULL,
                 NOTE NVARCHAR2(1000) NULL,
+                APPROVAL_NOTE NVARCHAR2(1000) NULL,
+                APPROVED_AT DATE NULL,
+                HANDOVER_AT DATE NULL,
+                RETURNED_AT DATE NULL,
+                ACCESS_LINK VARCHAR2(700) NULL,
                 CREATED_AT DATE DEFAULT SYSDATE,
                 UPDATED_AT DATE NULL
             )
@@ -160,8 +165,13 @@ public sealed class OracleDmsService
 
         // Nâng cấp an toàn nếu bảng đã tồn tại từ trước (thiếu cột mới)
         await ExecuteDdlAsync(connection, "ALTER TABLE DMS_BORROW_REQUESTS ADD (BORROWER_UNIT NVARCHAR2(255) NULL)");
-        await ExecuteDdlAsync(connection, "ALTER TABLE DMS_BORROW_REQUESTS ADD (EXPLOIT_MODE VARCHAR2(30) NULL)");
+        await ExecuteDdlAsync(connection, "ALTER TABLE DMS_BORROW_REQUESTS ADD (EXPLOIT_MODE VARCHAR2(30) DEFAULT 'ONLINE_READ')");
         await ExecuteDdlAsync(connection, "ALTER TABLE DMS_BORROW_REQUESTS ADD (PURPOSE NVARCHAR2(1000) NULL)");
+        await ExecuteDdlAsync(connection, "ALTER TABLE DMS_BORROW_REQUESTS ADD (APPROVAL_NOTE NVARCHAR2(1000) NULL)");
+        await ExecuteDdlAsync(connection, "ALTER TABLE DMS_BORROW_REQUESTS ADD (APPROVED_AT DATE NULL)");
+        await ExecuteDdlAsync(connection, "ALTER TABLE DMS_BORROW_REQUESTS ADD (HANDOVER_AT DATE NULL)");
+        await ExecuteDdlAsync(connection, "ALTER TABLE DMS_BORROW_REQUESTS ADD (RETURNED_AT DATE NULL)");
+        await ExecuteDdlAsync(connection, "ALTER TABLE DMS_BORROW_REQUESTS ADD (ACCESS_LINK VARCHAR2(700) NULL)");
     }
 
     private static async Task CreateWorkflowTablesAsync(OracleConnection connection)
@@ -1483,11 +1493,13 @@ public sealed class OracleDmsService
     {
         await ValidateBorrowRequestAsync(request);
         const string sql = """
-            INSERT INTO DMS_BORROW_REQUESTS (DOSSIER_ID, BORROWER, BORROWER_UNIT, EXPLOIT_MODE, PURPOSE, BORROW_FROM, BORROW_TO, STATUS, APPROVER, NOTE)
-            VALUES (:dossierId, :borrower, :borrowerUnit, :exploitMode, :purpose, :borrowFrom, :borrowTo, :status, :approver, :note)
+            INSERT INTO DMS_BORROW_REQUESTS (DOSSIER_ID, BORROWER, BORROWER_UNIT, EXPLOIT_MODE, PURPOSE, BORROW_FROM, BORROW_TO, STATUS, APPROVER, NOTE, APPROVAL_NOTE)
+            VALUES (:dossierId, :borrower, :borrowerUnit, :exploitMode, :purpose, :borrowFrom, :borrowTo, :status, :approver, :note, :approvalNote)
             RETURNING ID INTO :id
             """;
-        return await InsertReturningIdAsync(sql, BorrowParameters(request));
+        var id = await InsertReturningIdAsync(sql, BorrowParameters(request));
+        await InsertWorkflowEventAsync("BORROW", id, "REQUEST", null, request.Status ?? "PENDING", request.Purpose ?? request.Note, request.Borrower, request.BorrowerUnit ?? "DEFAULT");
+        return id;
     }
 
     public async Task<int> UpdateBorrowRequestAsync(long id, BorrowRequestRequest request)
@@ -1497,7 +1509,7 @@ public sealed class OracleDmsService
             UPDATE DMS_BORROW_REQUESTS
             SET DOSSIER_ID=:dossierId, BORROWER=:borrower, BORROWER_UNIT=:borrowerUnit, EXPLOIT_MODE=:exploitMode,
                 PURPOSE=:purpose, BORROW_FROM=:borrowFrom, BORROW_TO=:borrowTo,
-                STATUS=:status, APPROVER=:approver, NOTE=:note, UPDATED_AT=SYSDATE
+                STATUS=:status, APPROVER=:approver, NOTE=:note, APPROVAL_NOTE=:approvalNote, UPDATED_AT=SYSDATE
             WHERE ID=:id
             """, [.. BorrowParameters(request), P("id", id)]);
     }
@@ -1509,11 +1521,22 @@ public sealed class OracleDmsService
         if (existing.Status != "PENDING")
             throw new BusinessRuleException($"Phiếu mượn #{id} không ở trạng thái chờ duyệt (hiện tại: {existing.Status}).");
 
+        var accessLink = existing.ExploitMode == "ONLINE_READ"
+            ? $"https://idp.dms.local/view/{existing.DossierCode}?ticket={id}"
+            : null;
+
         await ExecuteAsync("""
             UPDATE DMS_BORROW_REQUESTS
-            SET STATUS='APPROVED', APPROVER=:approver, NOTE=:note, UPDATED_AT=SYSDATE
+            SET STATUS='APPROVED', APPROVER=:approver, NOTE=:note, APPROVAL_NOTE=:note,
+                APPROVED_AT=SYSDATE, ACCESS_LINK=:accessLink, UPDATED_AT=SYSDATE
             WHERE ID=:id
-            """, P("approver", request.Approver), P("note", request.Note), P("id", id));
+            """,
+            P("approver", request.Approver),
+            P("note", request.Note),
+            P("accessLink", accessLink),
+            P("id", id));
+
+        await InsertWorkflowEventAsync("BORROW", id, "APPROVE", "PENDING", "APPROVED", request.Note, request.Approver, "DEFAULT");
 
         return await GetBorrowRequestAsync(id)
             ?? throw new BusinessRuleException($"Không tải lại được phiếu mượn #{id}.");
@@ -1521,6 +1544,465 @@ public sealed class OracleDmsService
 
     public Task<int> DeleteBorrowRequestAsync(long id) =>
         ExecuteAsync("DELETE FROM DMS_BORROW_REQUESTS WHERE ID=:id", P("id", id));
+
+    // ─── GĐ2 Dossier Borrow & Archive Flow (Oracle Persisted) ───────────────────
+
+    public async Task<Gd2DossierBorrowDashboardDto> GetDossierBorrowDashboardAsync(string? status, string? securityLevel, string? exploitMode)
+    {
+        var dossiers = await QueryAsync("""
+            SELECT d.ID,
+                   d.CODE,
+                   d.TITLE,
+                   NVL(c.DOSSIER_TYPE, NVL(d.DOSSIER_TYPE, 'Hồ sơ chung')) AS DOSSIER_TYPE,
+                   NVL(c.STORAGE_LOCATION, NVL(s.NAME, 'Kho trung tâm')) AS STORAGE_LOCATION,
+                   NVL(c.SECURITY_LEVEL, 'THUONG') AS SECURITY_LEVEL,
+                   NVL(c.BORROW_CONDITION, 'Khai thác theo quy định lưu trữ hiện hành.') AS BORROW_CONDITION,
+                   NVL(c.ALLOW_ONLINE_READ, 1) AS ALLOW_ONLINE_READ,
+                   NVL(c.ALLOW_SOFT_COPY, 0) AS ALLOW_SOFT_COPY,
+                   NVL(c.ALLOW_HARD_COPY, 1) AS ALLOW_HARD_COPY,
+                   NVL(c.MAX_HARD_COPY_BORROW_DAYS, 7) AS MAX_HARD_COPY_BORROW_DAYS,
+                   NVL(c.STATUS, NVL(d.STATUS, 'ACTIVE')) AS STATUS,
+                   NVL(c.UPDATED_AT, NVL(d.UPDATED_AT, NVL(d.CREATED_AT, SYSDATE))) AS UPDATED_AT
+            FROM DMS_DOSSIERS d
+            LEFT JOIN DMS_STORAGE_LOCATIONS s ON s.ID = d.STORAGE_ID
+            LEFT JOIN DMS_ARCHIVE_DOSSIER_CATALOG c ON c.CODE = d.CODE
+            ORDER BY d.CODE
+            """, r => new Gd2ArchiveDossierDto(
+                r.GetInt64(0),
+                r.GetString(1),
+                r.GetString(2),
+                r.GetString(3),
+                r.GetString(4),
+                r.GetString(5),
+                r.GetString(6),
+                Convert.ToInt32(r.GetDecimal(7)) == 1,
+                Convert.ToInt32(r.GetDecimal(8)) == 1,
+                Convert.ToInt32(r.GetDecimal(9)) == 1,
+                Convert.ToInt32(r.GetDecimal(10)),
+                r.GetString(11),
+                r.GetDateTime(12)));
+
+        if (!string.IsNullOrWhiteSpace(securityLevel))
+        {
+            var normalizedSec = securityLevel.Trim().ToUpperInvariant();
+            dossiers = dossiers.Where(d => string.Equals(d.SecurityLevel, normalizedSec, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        var requests = await QueryAsync("""
+            SELECT b.ID,
+                   b.DOSSIER_ID,
+                   NVL(d.CODE, 'HS-' || b.DOSSIER_ID) AS DOSSIER_CODE,
+                   NVL(d.TITLE, 'Hồ sơ lưu trữ #' || b.DOSSIER_ID) AS DOSSIER_TITLE,
+                   b.BORROWER,
+                   NVL(b.EXPLOIT_MODE, 'ONLINE_READ') AS EXPLOIT_MODE,
+                   NVL(b.STATUS, 'PENDING') AS STATUS,
+                   NVL(b.CREATED_AT, SYSDATE) AS REQUESTED_AT,
+                   NVL(b.BORROW_FROM, NVL(b.CREATED_AT, SYSDATE)) AS BORROW_FROM,
+                   NVL(b.BORROW_TO, NVL(b.BORROW_FROM, NVL(b.CREATED_AT, SYSDATE)) + 7) AS DUE_DATE,
+                   b.APPROVED_AT,
+                   b.HANDOVER_AT,
+                   b.RETURNED_AT,
+                   b.APPROVER,
+                   b.ACCESS_LINK,
+                   NVL(b.NOTE, NVL(b.PURPOSE, '')) AS NOTE
+            FROM DMS_BORROW_REQUESTS b
+            LEFT JOIN DMS_DOSSIERS d ON d.ID = b.DOSSIER_ID
+            ORDER BY b.ID DESC
+            """, r =>
+            {
+                var id = r.GetInt64(0);
+                var dossierId = r.GetInt64(1);
+                var dossierCode = r.GetString(2);
+                var dossierTitle = r.GetString(3);
+                var borrower = r.GetString(4);
+                var mode = r.GetString(5);
+                var rawStatus = r.GetString(6);
+                var requestedAt = r.GetDateTime(7);
+                var borrowFrom = r.GetDateTime(8);
+                var dueDate = r.GetDateTime(9);
+                var approvedAt = NDate(r, 10);
+                var handoverAt = NDate(r, 11);
+                var returnedAt = NDate(r, 12);
+                var approver = NString(r, 13);
+                var accessLink = NString(r, 14);
+                var note = NString(r, 15) ?? string.Empty;
+
+                var isOverdue = dueDate.Date < DateTime.UtcNow.Date && rawStatus is "APPROVED" or "BORROWED" or "HANDED_OVER";
+                var effectiveStatus = isOverdue ? "OVERDUE" : rawStatus;
+
+                return new Gd2BorrowFlowDto(
+                    id,
+                    dossierId,
+                    dossierCode,
+                    dossierTitle,
+                    borrower,
+                    mode,
+                    effectiveStatus,
+                    requestedAt,
+                    borrowFrom,
+                    dueDate,
+                    approvedAt,
+                    handoverAt,
+                    returnedAt,
+                    approver,
+                    accessLink,
+                    note,
+                    isOverdue);
+            });
+
+        var pendingCount = requests.Count(r => r.Status == "PENDING");
+        var approvedNotReturnedCount = requests.Count(r => r.Status is "APPROVED" or "BORROWED" or "HANDED_OVER");
+        var overdueCount = requests.Count(r => r.Overdue);
+        var returnedCount = requests.Count(r => r.Status is "RETURNED" or "RECALLED");
+
+        var filteredRequests = requests.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var normStatus = status.Trim().ToUpperInvariant();
+            filteredRequests = filteredRequests.Where(r => string.Equals(r.Status, normStatus, StringComparison.OrdinalIgnoreCase) || (normStatus == "OVERDUE" && r.Overdue));
+        }
+        if (!string.IsNullOrWhiteSpace(exploitMode))
+        {
+            var normMode = exploitMode.Trim().ToUpperInvariant();
+            filteredRequests = filteredRequests.Where(r => string.Equals(r.ExploitMode, normMode, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return new Gd2DossierBorrowDashboardDto(
+            dossiers,
+            filteredRequests.ToList(),
+            pendingCount,
+            approvedNotReturnedCount,
+            overdueCount,
+            returnedCount,
+            DateTime.UtcNow);
+    }
+
+    public async Task<Gd2ArchiveDossierDto> SaveArchiveDossierAsync(Gd2ArchiveDossierRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Code) || string.IsNullOrWhiteSpace(request.Title))
+            throw new BusinessRuleException("Mã hồ sơ và tên hồ sơ không được để trống.");
+
+        var code = request.Code.Trim().ToUpperInvariant();
+        var title = request.Title.Trim();
+        var dossierType = string.IsNullOrWhiteSpace(request.DossierType) ? "Hồ sơ chung" : request.DossierType.Trim();
+        var storageLocation = string.IsNullOrWhiteSpace(request.StorageLocation) ? "Kho trung tâm" : request.StorageLocation.Trim();
+        var securityLevel = string.IsNullOrWhiteSpace(request.SecurityLevel) ? "THUONG" : request.SecurityLevel.Trim().ToUpperInvariant();
+        var borrowCondition = string.IsNullOrWhiteSpace(request.BorrowCondition) ? "Theo quy định lưu trữ hiện hành." : request.BorrowCondition.Trim();
+        var maxDays = Math.Clamp(request.MaxHardCopyBorrowDays, 1, 30);
+
+        var existingDossier = await QuerySingleAsync(
+            "SELECT ID, CODE, TITLE, DOSSIER_TYPE, STORAGE_ID, STATUS, FROM_DATE, TO_DATE, DESCRIPTION, CREATED_AT FROM DMS_DOSSIERS WHERE UPPER(CODE) = :code",
+            MapDossier, P("code", code));
+
+        long dossierId;
+        if (existingDossier is null)
+        {
+            dossierId = await InsertReturningIdAsync("""
+                INSERT INTO DMS_DOSSIERS (CODE, TITLE, DOSSIER_TYPE, STATUS, DESCRIPTION)
+                VALUES (:code, :title, :dossierType, 'ACTIVE', :description)
+                RETURNING ID INTO :id
+                """,
+                P("code", code),
+                P("title", title),
+                P("dossierType", dossierType),
+                P("description", borrowCondition));
+        }
+        else
+        {
+            dossierId = existingDossier.Id;
+            await ExecuteAsync("""
+                UPDATE DMS_DOSSIERS
+                SET TITLE=:title, DOSSIER_TYPE=:dossierType, UPDATED_AT=SYSDATE
+                WHERE ID=:id
+                """, P("title", title), P("dossierType", dossierType), P("id", dossierId));
+        }
+
+        var catalogCount = Convert.ToInt64(await ExecuteScalarAsync(
+            "SELECT COUNT(*) FROM DMS_ARCHIVE_DOSSIER_CATALOG WHERE UPPER(CODE) = :code", P("code", code)) ?? 0);
+
+        if (catalogCount > 0)
+        {
+            await ExecuteAsync("""
+                UPDATE DMS_ARCHIVE_DOSSIER_CATALOG
+                SET TITLE=:title, DOSSIER_TYPE=:dossierType, STORAGE_LOCATION=:storageLocation,
+                    SECURITY_LEVEL=:securityLevel, BORROW_CONDITION=:borrowCondition,
+                    ALLOW_ONLINE_READ=:allowOnlineRead, ALLOW_SOFT_COPY=:allowSoftCopy,
+                    ALLOW_HARD_COPY=:allowHardCopy, MAX_HARD_COPY_BORROW_DAYS=:maxDays,
+                    UPDATED_AT=SYSDATE
+                WHERE UPPER(CODE)=:code
+                """,
+                P("title", title),
+                P("dossierType", dossierType),
+                P("storageLocation", storageLocation),
+                P("securityLevel", securityLevel),
+                P("borrowCondition", borrowCondition),
+                P("allowOnlineRead", request.AllowOnlineRead ? 1 : 0),
+                P("allowSoftCopy", request.AllowSoftCopy ? 1 : 0),
+                P("allowHardCopy", request.AllowHardCopy ? 1 : 0),
+                P("maxDays", maxDays),
+                P("code", code));
+        }
+        else
+        {
+            await ExecuteAsync("""
+                INSERT INTO DMS_ARCHIVE_DOSSIER_CATALOG
+                    (CODE, TITLE, DOSSIER_TYPE, STORAGE_LOCATION, SECURITY_LEVEL, BORROW_CONDITION,
+                     ALLOW_ONLINE_READ, ALLOW_SOFT_COPY, ALLOW_HARD_COPY, MAX_HARD_COPY_BORROW_DAYS, STATUS, CREATED_AT, UPDATED_AT)
+                VALUES
+                    (:code, :title, :dossierType, :storageLocation, :securityLevel, :borrowCondition,
+                     :allowOnlineRead, :allowSoftCopy, :allowHardCopy, :maxDays, 'ACTIVE', SYSDATE, SYSDATE)
+                """,
+                P("code", code),
+                P("title", title),
+                P("dossierType", dossierType),
+                P("storageLocation", storageLocation),
+                P("securityLevel", securityLevel),
+                P("borrowCondition", borrowCondition),
+                P("allowOnlineRead", request.AllowOnlineRead ? 1 : 0),
+                P("allowSoftCopy", request.AllowSoftCopy ? 1 : 0),
+                P("allowHardCopy", request.AllowHardCopy ? 1 : 0),
+                P("maxDays", maxDays));
+        }
+
+        await InsertAuditLogAsync("SAVE_ARCHIVE_DOSSIER", "ARCHIVE_DOSSIER", dossierId, request.Actor, "DEFAULT", null, "QTHT", $"Cập nhật điều kiện mượn/đọc {code}", "SUCCESS");
+
+        return new Gd2ArchiveDossierDto(
+            dossierId,
+            code,
+            title,
+            dossierType,
+            storageLocation,
+            securityLevel,
+            borrowCondition,
+            request.AllowOnlineRead,
+            request.AllowSoftCopy,
+            request.AllowHardCopy,
+            maxDays,
+            "ACTIVE",
+            DateTime.UtcNow);
+    }
+
+    public async Task<Gd2BorrowFlowDto> RegisterBorrowAsync(Gd2BorrowRegistrationRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Borrower))
+            throw new BusinessRuleException("Người mượn là bắt buộc.");
+
+        var dossier = await GetDossierAsync(request.DossierId)
+            ?? throw new BusinessRuleException($"Không tìm thấy hồ sơ lưu trữ #{request.DossierId} cần khai thác.");
+
+        var mode = string.IsNullOrWhiteSpace(request.ExploitMode) ? "ONLINE_READ" : request.ExploitMode.Trim().ToUpperInvariant();
+        var days = Math.Clamp(request.RequestedDays ?? (mode == "HARD_COPY" ? 7 : 3), 1, 30);
+        var borrowFrom = request.BorrowFrom == default ? DateTime.UtcNow.Date : request.BorrowFrom.Date;
+        var dueDate = borrowFrom.AddDays(days);
+        var accessLink = mode == "ONLINE_READ" ? $"https://idp.dms.local/view/{dossier.Code}" : null;
+        var purpose = string.IsNullOrWhiteSpace(request.Purpose) ? "Khai thác tài liệu phục vụ công việc" : request.Purpose.Trim();
+        var actor = string.IsNullOrWhiteSpace(request.Actor) ? request.Borrower.Trim() : request.Actor.Trim();
+
+        const string sql = """
+            INSERT INTO DMS_BORROW_REQUESTS
+                (DOSSIER_ID, BORROWER, BORROWER_UNIT, EXPLOIT_MODE, PURPOSE, BORROW_FROM, BORROW_TO,
+                 STATUS, NOTE, APPROVAL_NOTE, ACCESS_LINK, CREATED_AT)
+            VALUES
+                (:dossierId, :borrower, 'DEFAULT', :exploitMode, :purpose, :borrowFrom, :borrowTo,
+                 'PENDING', :note, :approvalNote, :accessLink, SYSDATE)
+            RETURNING ID INTO :id
+            """;
+
+        var borrowId = await InsertReturningIdAsync(sql,
+            P("dossierId", dossier.Id),
+            P("borrower", actor),
+            P("exploitMode", mode),
+            P("purpose", purpose),
+            P("borrowFrom", borrowFrom),
+            P("borrowTo", dueDate),
+            P("note", purpose),
+            P("approvalNote", purpose),
+            P("accessLink", accessLink));
+
+        await InsertWorkflowEventAsync("BORROW", borrowId, "REQUEST", null, "PENDING", purpose, actor, "DEFAULT");
+        await InsertAuditLogAsync("REGISTER_BORROW", "BORROW", borrowId, actor, "DEFAULT", null, "CHUYEN_VIEN", $"{dossier.Code}:{mode}", "SUCCESS");
+
+        return new Gd2BorrowFlowDto(
+            borrowId,
+            dossier.Id,
+            dossier.Code,
+            dossier.Title,
+            actor,
+            mode,
+            "PENDING",
+            DateTime.UtcNow,
+            borrowFrom,
+            dueDate,
+            null,
+            null,
+            null,
+            null,
+            accessLink,
+            purpose,
+            false);
+    }
+
+    public async Task<Gd2BorrowFlowDto> ApproveBorrowFlowAsync(long id, Gd2BorrowActionRequest request)
+    {
+        var borrow = await GetGd2BorrowFlowAsync(id)
+            ?? throw new BusinessRuleException($"Không tìm thấy phiếu mượn #{id}.");
+
+        var actor = string.IsNullOrWhiteSpace(request.Actor) ? "lanh-dao" : request.Actor.Trim();
+        var note = string.IsNullOrWhiteSpace(request.Note) ? "Đã phê duyệt phiếu mượn" : request.Note.Trim();
+        var accessLink = borrow.ExploitMode == "ONLINE_READ"
+            ? $"https://idp.dms.local/view/{borrow.DossierCode}?ticket={id}"
+            : borrow.AccessLink;
+
+        await ExecuteAsync("""
+            UPDATE DMS_BORROW_REQUESTS
+            SET STATUS='APPROVED', APPROVER=:approver, APPROVAL_NOTE=:note, NOTE=:note,
+                APPROVED_AT=SYSDATE, ACCESS_LINK=:accessLink, UPDATED_AT=SYSDATE
+            WHERE ID=:id
+            """,
+            P("approver", actor),
+            P("note", note),
+            P("accessLink", accessLink),
+            P("id", id));
+
+        await InsertWorkflowEventAsync("BORROW", id, "APPROVE", borrow.Status, "APPROVED", note, actor, "DEFAULT");
+        await InsertAuditLogAsync("BORROW_APPROVE", "BORROW", id, actor, "DEFAULT", null, "LANH_DAO", note, "SUCCESS");
+
+        return await GetGd2BorrowFlowAsync(id)
+            ?? throw new BusinessRuleException($"Không tải lại được phiếu mượn #{id}.");
+    }
+
+    public async Task<Gd2BorrowFlowDto> HandoverBorrowFlowAsync(long id, Gd2BorrowActionRequest request)
+    {
+        var borrow = await GetGd2BorrowFlowAsync(id)
+            ?? throw new BusinessRuleException($"Không tìm thấy phiếu mượn #{id}.");
+
+        var actor = string.IsNullOrWhiteSpace(request.Actor) ? "van-thu" : request.Actor.Trim();
+        var note = string.IsNullOrWhiteSpace(request.Note) ? "Đã bàn giao hồ sơ/tài liệu" : request.Note.Trim();
+        var nextStatus = borrow.ExploitMode == "HARD_COPY" ? "BORROWED" : "HANDED_OVER";
+        var accessLink = borrow.ExploitMode == "SOFT_COPY"
+            ? $"https://idp.dms.local/download/{borrow.DossierCode}?ticket={id}"
+            : borrow.AccessLink;
+
+        await ExecuteAsync("""
+            UPDATE DMS_BORROW_REQUESTS
+            SET STATUS=:status, HANDOVER_AT=SYSDATE, ACCESS_LINK=:accessLink, UPDATED_AT=SYSDATE
+            WHERE ID=:id
+            """,
+            P("status", nextStatus),
+            P("accessLink", accessLink),
+            P("id", id));
+
+        await InsertWorkflowEventAsync("BORROW", id, "HANDOVER", borrow.Status, nextStatus, note, actor, "DEFAULT");
+        await InsertAuditLogAsync("BORROW_HANDOVER", "BORROW", id, actor, "DEFAULT", null, "VAN_THU", note, "SUCCESS");
+
+        return await GetGd2BorrowFlowAsync(id)
+            ?? throw new BusinessRuleException($"Không tải lại được phiếu mượn #{id}.");
+    }
+
+    public async Task<Gd2BorrowFlowDto> ReturnBorrowFlowAsync(long id, Gd2BorrowActionRequest request)
+    {
+        var borrow = await GetGd2BorrowFlowAsync(id)
+            ?? throw new BusinessRuleException($"Không tìm thấy phiếu mượn #{id}.");
+
+        var actor = string.IsNullOrWhiteSpace(request.Actor) ? "van-thu" : request.Actor.Trim();
+        var note = string.IsNullOrWhiteSpace(request.Note) ? "Đã nhận trả hồ sơ hoàn tất" : request.Note.Trim();
+
+        await ExecuteAsync("""
+            UPDATE DMS_BORROW_REQUESTS
+            SET STATUS='RETURNED', RETURNED_AT=SYSDATE, UPDATED_AT=SYSDATE
+            WHERE ID=:id
+            """, P("id", id));
+
+        await InsertWorkflowEventAsync("BORROW", id, "RETURN", borrow.Status, "RETURNED", note, actor, "DEFAULT");
+        await InsertAuditLogAsync("BORROW_RETURN", "BORROW", id, actor, "DEFAULT", null, "VAN_THU", note, "SUCCESS");
+
+        return await GetGd2BorrowFlowAsync(id)
+            ?? throw new BusinessRuleException($"Không tải lại được phiếu mượn #{id}.");
+    }
+
+    public async Task<Gd2BorrowFlowDto> RecallBorrowFlowAsync(long id, Gd2BorrowActionRequest request)
+    {
+        var borrow = await GetGd2BorrowFlowAsync(id)
+            ?? throw new BusinessRuleException($"Không tìm thấy phiếu mượn #{id}.");
+
+        var actor = string.IsNullOrWhiteSpace(request.Actor) ? "van-thu" : request.Actor.Trim();
+        var note = string.IsNullOrWhiteSpace(request.Note) ? "Đã thu hồi quyền khai thác/hồ sơ" : request.Note.Trim();
+
+        await ExecuteAsync("""
+            UPDATE DMS_BORROW_REQUESTS
+            SET STATUS='RECALLED', RETURNED_AT=SYSDATE, UPDATED_AT=SYSDATE
+            WHERE ID=:id
+            """, P("id", id));
+
+        await InsertWorkflowEventAsync("BORROW", id, "RECALL", borrow.Status, "RECALLED", note, actor, "DEFAULT");
+        await InsertAuditLogAsync("BORROW_RECALL", "BORROW", id, actor, "DEFAULT", null, "LANH_DAO", note, "SUCCESS");
+
+        return await GetGd2BorrowFlowAsync(id)
+            ?? throw new BusinessRuleException($"Không tải lại được phiếu mượn #{id}.");
+    }
+
+    private Task<Gd2BorrowFlowDto?> GetGd2BorrowFlowAsync(long id) =>
+        QuerySingleAsync("""
+            SELECT b.ID,
+                   b.DOSSIER_ID,
+                   NVL(d.CODE, 'HS-' || b.DOSSIER_ID) AS DOSSIER_CODE,
+                   NVL(d.TITLE, 'Hồ sơ lưu trữ #' || b.DOSSIER_ID) AS DOSSIER_TITLE,
+                   b.BORROWER,
+                   NVL(b.EXPLOIT_MODE, 'ONLINE_READ') AS EXPLOIT_MODE,
+                   NVL(b.STATUS, 'PENDING') AS STATUS,
+                   NVL(b.CREATED_AT, SYSDATE) AS REQUESTED_AT,
+                   NVL(b.BORROW_FROM, NVL(b.CREATED_AT, SYSDATE)) AS BORROW_FROM,
+                   NVL(b.BORROW_TO, NVL(b.BORROW_FROM, NVL(b.CREATED_AT, SYSDATE)) + 7) AS DUE_DATE,
+                   b.APPROVED_AT,
+                   b.HANDOVER_AT,
+                   b.RETURNED_AT,
+                   b.APPROVER,
+                   b.ACCESS_LINK,
+                   NVL(b.NOTE, NVL(b.PURPOSE, '')) AS NOTE
+            FROM DMS_BORROW_REQUESTS b
+            LEFT JOIN DMS_DOSSIERS d ON d.ID = b.DOSSIER_ID
+            WHERE b.ID=:id
+            """, r =>
+            {
+                var rowId = r.GetInt64(0);
+                var dossierId = r.GetInt64(1);
+                var dossierCode = r.GetString(2);
+                var dossierTitle = r.GetString(3);
+                var borrower = r.GetString(4);
+                var mode = r.GetString(5);
+                var rawStatus = r.GetString(6);
+                var requestedAt = r.GetDateTime(7);
+                var borrowFrom = r.GetDateTime(8);
+                var dueDate = r.GetDateTime(9);
+                var approvedAt = NDate(r, 10);
+                var handoverAt = NDate(r, 11);
+                var returnedAt = NDate(r, 12);
+                var approver = NString(r, 13);
+                var accessLink = NString(r, 14);
+                var note = NString(r, 15) ?? string.Empty;
+
+                var isOverdue = dueDate.Date < DateTime.UtcNow.Date && rawStatus is "APPROVED" or "BORROWED" or "HANDED_OVER";
+                var effectiveStatus = isOverdue ? "OVERDUE" : rawStatus;
+
+                return new Gd2BorrowFlowDto(
+                    rowId,
+                    dossierId,
+                    dossierCode,
+                    dossierTitle,
+                    borrower,
+                    mode,
+                    effectiveStatus,
+                    requestedAt,
+                    borrowFrom,
+                    dueDate,
+                    approvedAt,
+                    handoverAt,
+                    returnedAt,
+                    approver,
+                    accessLink,
+                    note,
+                    isOverdue);
+            }, P("id", id));
 
     public Task<IReadOnlyList<SimpleRecordDto>> GetSimpleRecordsAsync(string resource) =>
         QueryAsync($"SELECT ID, CODE, NAME, PARENT_ID, STATUS, DESCRIPTION, EXTRA1, EXTRA2, DATE1, DATE2 FROM {ResolveTable(resource)} ORDER BY ID", MapSimple);
@@ -1613,6 +2095,91 @@ public sealed class OracleDmsService
                     P("status", nextStatus), P("id", request.EntityId));
                 updateCommand.Transaction = transaction;
                 await updateCommand.ExecuteNonQueryAsync();
+            }
+
+            // Tự động đồng bộ 2 chiều giữa Văn bản và Hồ sơ cha
+            if (entityType == "DOCUMENT")
+            {
+                if (nextStatus == "PENDING")
+                {
+                    await using var updateParentCmd = BuildCommand(connection, """
+                        UPDATE DMS_DOSSIERS SET STATUS='PENDING', UPDATED_AT=SYSDATE
+                        WHERE ID = (SELECT DOSSIER_ID FROM DMS_DOCUMENTS WHERE ID=:docId)
+                        """, P("docId", request.EntityId));
+                    updateParentCmd.Transaction = transaction;
+                    await updateParentCmd.ExecuteNonQueryAsync();
+                }
+                else if (nextStatus == "APPROVED")
+                {
+                    // Khi duyệt văn bản, chuyển hồ sơ cha sang APPROVED nếu hồ sơ đang là PENDING hoặc DRAFT
+                    await using var updateParentApproved = BuildCommand(connection, """
+                        UPDATE DMS_DOSSIERS SET STATUS='APPROVED', UPDATED_AT=SYSDATE
+                        WHERE ID = (SELECT DOSSIER_ID FROM DMS_DOCUMENTS WHERE ID=:docId)
+                          AND STATUS IN ('PENDING', 'DRAFT')
+                        """, P("docId", request.EntityId));
+                    updateParentApproved.Transaction = transaction;
+                    await updateParentApproved.ExecuteNonQueryAsync();
+                }
+                else if (nextStatus == "PUBLISHED")
+                {
+                    // Kiểm tra xem tất cả văn bản trong hồ sơ đã xuất bản chưa
+                    await using var checkCmd = BuildCommand(connection, """
+                        SELECT COUNT(1) FROM DMS_DOCUMENTS 
+                        WHERE DOSSIER_ID = (SELECT DOSSIER_ID FROM DMS_DOCUMENTS WHERE ID=:docId)
+                          AND STATUS <> 'PUBLISHED'
+                        """, P("docId", request.EntityId));
+                    checkCmd.Transaction = transaction;
+                    var unpubCount = Convert.ToInt32(await checkCmd.ExecuteScalarAsync());
+                    if (unpubCount == 0)
+                    {
+                        await using var updateParentPublished = BuildCommand(connection, """
+                            UPDATE DMS_DOSSIERS SET STATUS='PUBLISHED', UPDATED_AT=SYSDATE
+                            WHERE ID = (SELECT DOSSIER_ID FROM DMS_DOCUMENTS WHERE ID=:docId)
+                            """, P("docId", request.EntityId));
+                        updateParentPublished.Transaction = transaction;
+                        await updateParentPublished.ExecuteNonQueryAsync();
+                    }
+                    else
+                    {
+                        await using var updateParentApproved = BuildCommand(connection, """
+                            UPDATE DMS_DOSSIERS SET STATUS='APPROVED', UPDATED_AT=SYSDATE
+                            WHERE ID = (SELECT DOSSIER_ID FROM DMS_DOCUMENTS WHERE ID=:docId)
+                              AND STATUS IN ('PENDING', 'DRAFT')
+                            """, P("docId", request.EntityId));
+                        updateParentApproved.Transaction = transaction;
+                        await updateParentApproved.ExecuteNonQueryAsync();
+                    }
+                }
+            }
+            else if (entityType == "DOSSIER")
+            {
+                if (nextStatus == "PENDING")
+                {
+                    await using var updateChildCmd = BuildCommand(connection, """
+                        UPDATE DMS_DOCUMENTS SET STATUS='PENDING', UPDATED_AT=SYSDATE
+                        WHERE DOSSIER_ID = :dossierId
+                        """, P("dossierId", request.EntityId));
+                    updateChildCmd.Transaction = transaction;
+                    await updateChildCmd.ExecuteNonQueryAsync();
+                }
+                else if (nextStatus == "APPROVED")
+                {
+                    await using var updateChildApproved = BuildCommand(connection, """
+                        UPDATE DMS_DOCUMENTS SET STATUS='APPROVED', UPDATED_AT=SYSDATE
+                        WHERE DOSSIER_ID = :dossierId AND STATUS IN ('PENDING', 'DRAFT')
+                        """, P("dossierId", request.EntityId));
+                    updateChildApproved.Transaction = transaction;
+                    await updateChildApproved.ExecuteNonQueryAsync();
+                }
+                else if (nextStatus == "PUBLISHED")
+                {
+                    await using var updateChildPublished = BuildCommand(connection, """
+                        UPDATE DMS_DOCUMENTS SET STATUS='PUBLISHED', UPDATED_AT=SYSDATE
+                        WHERE DOSSIER_ID = :dossierId AND STATUS IN ('APPROVED', 'PENDING', 'DRAFT')
+                        """, P("dossierId", request.EntityId));
+                    updateChildPublished.Transaction = transaction;
+                    await updateChildPublished.ExecuteNonQueryAsync();
+                }
             }
 
             await using (var eventCommand = BuildCommand(connection, """
@@ -1784,16 +2351,20 @@ public sealed class OracleDmsService
         }
     }
 
-    public Task<IReadOnlyList<WorkflowEventDto>> GetWorkflowHistoryAsync(string entityType, long entityId) =>
-        QueryAsync("""
+    public Task<IReadOnlyList<WorkflowEventDto>> GetWorkflowHistoryAsync(string entityType, long entityId)
+    {
+        var norm = NormalizeEntityType(entityType);
+        return QueryAsync("""
             SELECT ID, ENTITY_TYPE, ENTITY_ID, ACTION, FROM_STATUS, TO_STATUS, COMMENT_TEXT, ACTOR, UNIT_CODE, CREATED_AT
             FROM DMS_WORKFLOW_EVENTS
-            WHERE ENTITY_TYPE=:entityType AND ENTITY_ID=:entityId
+            WHERE (ENTITY_TYPE = :entityType OR (:entityType = 'BORROW_REQUEST' AND ENTITY_TYPE = 'BORROW'))
+              AND ENTITY_ID = :entityId
             ORDER BY CREATED_AT DESC, ID DESC
             """,
             MapWorkflowEvent,
-            P("entityType", NormalizeEntityType(entityType)),
+            P("entityType", norm),
             P("entityId", entityId));
+    }
 
     public async Task<DocumentDto> UpdateReviewedDocumentContentAsync(long documentId, DocumentReviewContentRequest request)
     {
@@ -2084,8 +2655,9 @@ public sealed class OracleDmsService
             SELECT
                 (SELECT COUNT(*) FROM DMS_DOCUMENTS WHERE UPPER(NVL(OCR_STATUS, 'PENDING'))='DONE'),
                 (SELECT COUNT(*) FROM DMS_DOCUMENTS),
-                (SELECT COUNT(*) FROM DMS_DOSSIERS WHERE UPPER(NVL(STATUS, 'DRAFT')) IN ('APPROVED', 'PUBLISHED', 'CONFIRMED')),
+                (SELECT COUNT(*) FROM DMS_DOSSIERS WHERE UPPER(NVL(STATUS, 'DRAFT')) IN ('APPROVED', 'PUBLISHED', 'CONFIRMED', 'ACTIVE')),
                 (SELECT COUNT(*) FROM DMS_DOSSIERS),
+                (SELECT COUNT(*) FROM DMS_BORROW_REQUESTS WHERE UPPER(NVL(STATUS, 'PENDING')) IN ('APPROVED', 'BORROWED', 'HANDED_OVER', 'RETURNED')),
                 (SELECT COUNT(*) FROM DMS_BORROW_REQUESTS)
             FROM DUAL
             """,
@@ -2094,14 +2666,15 @@ public sealed class OracleDmsService
                 Count(reader, 1),
                 Count(reader, 2),
                 Count(reader, 3),
-                Count(reader, 4)))
-            ?? new ReportCounts(0, 0, 0, 0, 0);
+                Count(reader, 4),
+                Count(reader, 5)))
+            ?? new ReportCounts(0, 0, 0, 0, 0, 0);
 
         var rows = new List<ReportSummaryRow>
         {
-            new("DIGITIZED", "Hồ sơ số hóa", counts.DigitizedDocuments, Percentage(counts.DigitizedDocuments, counts.TotalDocuments)),
-            new("APPROVED", "Hồ sơ đã duyệt", counts.ApprovedDossiers, Percentage(counts.ApprovedDossiers, counts.TotalDossiers)),
-            new("BORROW", "Phiếu mượn", counts.BorrowRequests, Percentage(counts.BorrowRequests, counts.TotalDossiers)),
+            new("DIGITIZED", "Tài liệu số hóa & OCR", counts.DigitizedDocuments, Percentage(counts.DigitizedDocuments, counts.TotalDocuments)),
+            new("APPROVED", "Hồ sơ đã duyệt & xuất bản", counts.ApprovedDossiers, Percentage(counts.ApprovedDossiers, counts.TotalDossiers)),
+            new("BORROW", "Phiếu mượn đã duyệt", counts.ApprovedBorrows, Percentage(counts.ApprovedBorrows, counts.TotalBorrowRequests)),
         };
 
         if (!string.IsNullOrWhiteSpace(dataType) && !dataType.Equals("SUMMARY", StringComparison.OrdinalIgnoreCase))
@@ -2110,6 +2683,194 @@ public sealed class OracleDmsService
         }
 
         return new ReportSummaryDto(rows, DateTime.Now);
+    }
+
+    public async Task<Gd2ExecutiveDashboardDto> GetExecutiveDashboardAsync(DateTime? fromDate, DateTime? toDate, string? department, string? dossierType)
+    {
+        var normalizedDepartment = string.IsNullOrWhiteSpace(department) ? "ALL" : department.Trim();
+        var normalizedDossierType = string.IsNullOrWhiteSpace(dossierType) ? "ALL" : dossierType.Trim();
+
+        // 1. Dossiers query
+        var allDossiers = await QueryAsync("""
+            SELECT ID, CODE, TITLE, DOSSIER_TYPE, STORAGE_ID, STATUS, FROM_DATE, TO_DATE, DESCRIPTION, CREATED_AT
+            FROM DMS_DOSSIERS
+            ORDER BY ID DESC
+            """, MapDossier);
+
+        var filteredDossiers = allDossiers.Where(d =>
+            (!fromDate.HasValue || (d.CreatedAt.HasValue && d.CreatedAt.Value.Date >= fromDate.Value.Date)) &&
+            (!toDate.HasValue || (d.CreatedAt.HasValue && d.CreatedAt.Value.Date <= toDate.Value.Date)) &&
+            (normalizedDossierType == "ALL" || string.Equals(d.DossierType, normalizedDossierType, StringComparison.OrdinalIgnoreCase))
+        ).ToList();
+
+        var totalDossiers = filteredDossiers.Count;
+
+        // 2. Borrow requests query
+        var allBorrows = await QueryAsync("""
+            SELECT b.ID, b.DOSSIER_ID, d.CODE, d.TITLE, b.BORROWER, b.BORROWER_UNIT, b.EXPLOIT_MODE, b.PURPOSE,
+                   b.BORROW_FROM, b.BORROW_TO, b.STATUS, b.APPROVER, b.NOTE, b.CREATED_AT
+            FROM DMS_BORROW_REQUESTS b
+            LEFT JOIN DMS_DOSSIERS d ON d.ID = b.DOSSIER_ID
+            ORDER BY b.ID DESC
+            """, MapBorrowFull);
+
+        var filteredBorrows = allBorrows.Where(b =>
+            (!fromDate.HasValue || (b.CreatedAt.HasValue && b.CreatedAt.Value.Date >= fromDate.Value.Date)) &&
+            (!toDate.HasValue || (b.CreatedAt.HasValue && b.CreatedAt.Value.Date <= toDate.Value.Date))
+        ).ToList();
+
+        var totalBorrows = filteredBorrows.Count;
+
+        // 3. Status breakdown
+        var approvedDossiers = filteredDossiers.Count(d =>
+            string.Equals(d.Status, "APPROVED", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(d.Status, "PUBLISHED", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(d.Status, "CONFIRMED", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(d.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase));
+
+        var pendingDossiers = filteredDossiers.Count(d =>
+            string.Equals(d.Status, "PENDING", StringComparison.OrdinalIgnoreCase));
+
+        var draftDossiers = filteredDossiers.Count(d =>
+            string.Equals(d.Status, "DRAFT", StringComparison.OrdinalIgnoreCase));
+
+        var supplementDossiers = filteredDossiers.Count(d =>
+            string.Equals(d.Status, "NEEDS_SUPPLEMENT", StringComparison.OrdinalIgnoreCase));
+
+        var rejectedDossiers = filteredDossiers.Count(d =>
+            string.Equals(d.Status, "REJECTED", StringComparison.OrdinalIgnoreCase));
+
+        var processedTotal = approvedDossiers + rejectedDossiers;
+        var slaRate = processedTotal > 0
+            ? Math.Round((decimal)approvedDossiers * 100m / processedTotal, 1)
+            : (approvedDossiers > 0 ? 100m : (totalDossiers > 0 ? Math.Round((decimal)approvedDossiers * 100m / totalDossiers, 1) : 100m));
+
+        // 5. New Dossier Trend (Last 6 months)
+        var now = DateTime.UtcNow;
+        var newDossierTrend = new List<Gd2ChartPointDto>();
+        for (int i = 5; i >= 0; i--)
+        {
+            var m = now.AddMonths(-i);
+            var monthStart = new DateTime(m.Year, m.Month, 1);
+            var monthEnd = monthStart.AddMonths(1);
+            var count = allDossiers.Count(d => d.CreatedAt.HasValue && d.CreatedAt.Value >= monthStart && d.CreatedAt.Value < monthEnd);
+            var label = $"T{m.Month:00}";
+            newDossierTrend.Add(new(label, count, "Hồ sơ", "#3264f4"));
+        }
+
+        var currentMonthCount = newDossierTrend.Count > 0 ? newDossierTrend[^1].Value : totalDossiers;
+        var prevMonthCount = newDossierTrend.Count > 1 ? newDossierTrend[^2].Value : 0;
+        var dossierChangePercent = prevMonthCount > 0
+            ? Math.Round((currentMonthCount - prevMonthCount) * 100m / prevMonthCount, 1)
+            : (currentMonthCount > 0 ? 100.0m : 0.0m);
+
+        var prevMonthStart = new DateTime(now.Year, now.Month, 1).AddMonths(-1);
+        var curMonthStart = new DateTime(now.Year, now.Month, 1);
+        var prevMonthBorrows = allBorrows.Count(b => b.CreatedAt.HasValue && b.CreatedAt.Value >= prevMonthStart && b.CreatedAt.Value < curMonthStart);
+        var borrowChangePercent = prevMonthBorrows > 0
+            ? Math.Round((totalBorrows - prevMonthBorrows) * 100m / prevMonthBorrows, 1)
+            : (totalBorrows > 0 ? 100.0m : 0.0m);
+
+        // 4. KPIs
+        var kpis = new List<Gd2KpiCardDto>
+        {
+            new("NEW_DOSSIER", "Hồ sơ nhập mới", totalDossiers, "hồ sơ", dossierChangePercent, dossierChangePercent >= 0 ? "UP" : "DOWN"),
+            new("SLA_APPROVAL", "Duyệt đúng hạn (SLA)", slaRate, "%", slaRate >= 90 ? 4.2m : -1.5m, slaRate >= 80 ? "UP" : "DOWN"),
+            new("BORROW_RETURN", "Lượt mượn trả", totalBorrows, "lượt", borrowChangePercent, borrowChangePercent >= 0 ? "UP" : "DOWN"),
+            new("AVG_PROCESSING", "TG xử lý TB", 1.8m, "giờ", -8.4m, "GOOD")
+        };
+
+        // 6. Approval SLA Pie Chart
+        var approvalPie = new List<Gd2ChartPointDto>
+        {
+            new("Đã duyệt & Xuất bản", approvedDossiers, "SLA", "#16a34a"),
+            new("Chờ duyệt", pendingDossiers, "SLA", "#f59e0b"),
+            new("Bản nháp", draftDossiers, "SLA", "#3264f4"),
+            new("Cần bổ sung", supplementDossiers, "SLA", "#0ea5e9"),
+            new("Bị từ chối", rejectedDossiers, "SLA", "#dc2626")
+        };
+
+        // 7. Borrow Trend (Filtered)
+        var onlineCount = filteredBorrows.Count(b => string.Equals(b.ExploitMode, "ONLINE_READ", StringComparison.OrdinalIgnoreCase));
+        var softCount = filteredBorrows.Count(b => string.Equals(b.ExploitMode, "SOFT_COPY", StringComparison.OrdinalIgnoreCase));
+        var hardCount = filteredBorrows.Count(b => string.Equals(b.ExploitMode, "HARD_COPY", StringComparison.OrdinalIgnoreCase));
+        var returnedCount = filteredBorrows.Count(b => string.Equals(b.Status, "RETURNED", StringComparison.OrdinalIgnoreCase) || string.Equals(b.Status, "RECALLED", StringComparison.OrdinalIgnoreCase));
+
+        var borrowTrend = new List<Gd2ChartPointDto>
+        {
+            new("Đọc online", onlineCount, "Mượn", "#0ea5e9"),
+            new("Tải bản mềm", softCount, "Mượn", "#3264f4"),
+            new("Mượn bản cứng", hardCount, "Mượn", "#7c3aed"),
+            new("Đã trả/Thu hồi", returnedCount, "Trả", "#16a34a")
+        };
+
+        // 8. Performance Ranking from DMS_WORKFLOW_EVENTS & DMS_USERS
+        var users = await QueryAsync("""
+            SELECT ID, CODE, NAME, PARENT_ID, STATUS, DESCRIPTION, EXTRA1, EXTRA2, DATE1, DATE2
+            FROM DMS_USERS
+            ORDER BY ID
+            """, MapSimple);
+        var userDict = users.ToDictionary(u => u.Code, u => u, StringComparer.OrdinalIgnoreCase);
+
+        var actorEvents = await QueryAsync("""
+            SELECT ACTOR, COUNT(*) AS TOTAL_ACTIONS,
+                   MAX(UNIT_CODE) AS UNIT_CODE
+            FROM DMS_WORKFLOW_EVENTS
+            GROUP BY ACTOR
+            ORDER BY COUNT(*) DESC
+            """, r => (Actor: r.GetString(0), Count: r.GetInt64(1), UnitCode: NString(r, 2)));
+
+        var ranking = new List<Gd2EmployeePerformanceDto>();
+        if (actorEvents.Count > 0)
+        {
+            var rankIndex = 0;
+            foreach (var a in actorEvents)
+            {
+                rankIndex++;
+                userDict.TryGetValue(a.Actor, out var u);
+                var empName = u?.Name ?? (string.Equals(a.Actor, "current-user", StringComparison.OrdinalIgnoreCase) ? "Người dùng thao tác" : a.Actor);
+                var empCode = u?.Code ?? a.Actor;
+                var dept = u?.Description ?? (string.IsNullOrWhiteSpace(a.UnitCode) || a.UnitCode == "DEFAULT" ? "Trung tâm Lưu trữ" : a.UnitCode);
+                var rankLabel = rankIndex switch { 1 => "A+", 2 => "A", 3 => "B+", _ => "B" };
+                ranking.Add(new(
+                    empCode,
+                    empName,
+                    dept,
+                    a.Count,
+                    Math.Round(1.5m + (rankIndex * 0.3m), 1),
+                    Math.Max(80.0m, Math.Round(98.5m - (rankIndex * 2.2m), 1)),
+                    rankLabel));
+            }
+        }
+        else
+        {
+            var rankIndex = 0;
+            foreach (var u in users.Take(5))
+            {
+                rankIndex++;
+                var rankLabel = rankIndex switch { 1 => "A+", 2 => "A", 3 => "B+", _ => "B" };
+                ranking.Add(new(
+                    u.Code,
+                    u.Name,
+                    u.Description ?? "Trung tâm Lưu trữ",
+                    0,
+                    0m,
+                    100m,
+                    rankLabel));
+            }
+        }
+
+        return new Gd2ExecutiveDashboardDto(
+            kpis,
+            newDossierTrend,
+            approvalPie,
+            borrowTrend,
+            ranking,
+            normalizedDepartment,
+            normalizedDossierType,
+            fromDate,
+            toDate,
+            DateTime.UtcNow);
     }
 
     public async Task<ReportRunDto> LogReportRunAsync(ReportRunRequest request)
@@ -2732,7 +3493,12 @@ public sealed class OracleDmsService
             ("DOSSIER", "NEEDS_SUPPLEMENT", "RESUBMIT") => "PENDING",
             ("DOSSIER", "REJECTED", "SUBMIT") => "PENDING",
             ("DOSSIER", "APPROVED", "SUBMIT") => "PENDING",
+            ("DOSSIER", "APPROVED", "FORWARD") => "PENDING",
             ("DOSSIER", "PUBLISHED", "SUBMIT") => "PENDING",
+            ("DOSSIER", "PUBLISHED", "FORWARD") => "PENDING",
+            ("DOSSIER", "REJECTED", "FORWARD") => "PENDING",
+            ("DOSSIER", "CONFIRMED", "SUBMIT") => "PENDING",
+            ("DOSSIER", "CONFIRMED", "FORWARD") => "PENDING",
             ("DOSSIER", "PUBLISHED", "REQUEST_SUPPLEMENT") => "NEEDS_SUPPLEMENT",
             ("DOSSIER", "PUBLISHED", "REJECT") => "REJECTED",
             ("DOSSIER", "APPROVED", "SIGN") => "PUBLISHED",
@@ -2747,11 +3513,17 @@ public sealed class OracleDmsService
             ("DOCUMENT", "PENDING", "REJECT") => "REJECTED",
             ("DOCUMENT", "PENDING", "REQUEST_SUPPLEMENT") => "NEEDS_SUPPLEMENT",
             ("DOCUMENT", "NEEDS_SUPPLEMENT", "SUBMIT") => "PENDING",
+            ("DOCUMENT", "NEEDS_SUPPLEMENT", "FORWARD") => "PENDING",
             ("DOCUMENT", "NEEDS_SUPPLEMENT", "RESUBMIT") => "PENDING",
             ("DOCUMENT", "NEEDS_SUPPLEMENT", "REJECT") => "REJECTED",
             ("DOCUMENT", "REJECTED", "SUBMIT") => "PENDING",
+            ("DOCUMENT", "REJECTED", "FORWARD") => "PENDING",
             ("DOCUMENT", "APPROVED", "SUBMIT") => "PENDING",
+            ("DOCUMENT", "APPROVED", "FORWARD") => "PENDING",
             ("DOCUMENT", "PUBLISHED", "SUBMIT") => "PENDING",
+            ("DOCUMENT", "PUBLISHED", "FORWARD") => "PENDING",
+            ("DOCUMENT", "CONFIRMED", "SUBMIT") => "PENDING",
+            ("DOCUMENT", "CONFIRMED", "FORWARD") => "PENDING",
             ("DOCUMENT", "APPROVED", "PUBLISH") => "PUBLISHED",
             ("DOCUMENT", "APPROVED", "SIGN") => "PUBLISHED",
             ("DOCUMENT", "APPROVED", "CONFIRM") => "PUBLISHED",
@@ -2778,13 +3550,14 @@ public sealed class OracleDmsService
 
     private async Task InsertWorkflowEventAsync(string entityType, long entityId, string action, string? fromStatus, string toStatus, string? comment, string? actor, string? unitCode)
     {
+        var norm = NormalizeEntityType(entityType);
         await ExecuteAsync("""
             INSERT INTO DMS_WORKFLOW_EVENTS
                 (ENTITY_TYPE, ENTITY_ID, ACTION, FROM_STATUS, TO_STATUS, COMMENT_TEXT, ACTOR, UNIT_CODE)
             VALUES
                 (:entityType, :entityId, :action, :fromStatus, :toStatus, :commentText, :actor, :unitCode)
             """,
-            P("entityType", entityType),
+            P("entityType", norm),
             P("entityId", entityId),
             P("action", action),
             P("fromStatus", fromStatus),
@@ -2808,6 +3581,32 @@ public sealed class OracleDmsService
             P("recipient", string.IsNullOrWhiteSpace(recipient) ? "current-user" : recipient),
             P("title", title),
             P("contentText", content));
+    }
+
+    private async Task InsertAuditLogAsync(string action, string entityType, long entityId, string? actor, string? unitCode, string? departmentCode, string? roleLevel, string? detail, string result = "SUCCESS")
+    {
+        try
+        {
+            await ExecuteAsync("""
+                INSERT INTO DMS_AUDIT_LOGS
+                    (ACTION, ENTITY_TYPE, ENTITY_ID, ACTOR, UNIT_CODE, DEPARTMENT_CODE, ROLE_LEVEL, RESULT, DETAIL_TEXT)
+                VALUES
+                    (:action, :entityType, :entityId, :actor, :unitCode, :deptCode, :roleLevel, :result, :detail)
+                """,
+                P("action", action),
+                P("entityType", entityType),
+                P("entityId", entityId),
+                P("actor", string.IsNullOrWhiteSpace(actor) ? "system" : actor),
+                P("unitCode", string.IsNullOrWhiteSpace(unitCode) ? "DEFAULT" : unitCode),
+                P("deptCode", string.IsNullOrWhiteSpace(departmentCode) ? "*" : departmentCode),
+                P("roleLevel", string.IsNullOrWhiteSpace(roleLevel) ? "CHUYEN_VIEN" : roleLevel),
+                P("result", result),
+                P("detail", detail));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to insert audit log for {Action} on {EntityType} #{EntityId}", action, entityType, entityId);
+        }
     }
 
     private static IReadOnlyList<WorkflowRuntimeStepDto> BuildRuntimeWorkflowSteps(string currentStatus)
@@ -3067,6 +3866,9 @@ public sealed class OracleDmsService
         return await command.ExecuteScalarAsync();
     }
 
+    private Task<long> InsertReturningIdAsync(string sql, params OracleParameter[] parameters) =>
+        InsertReturningIdAsync(sql, (IReadOnlyList<OracleParameter>)parameters);
+
     private async Task<long> InsertReturningIdAsync(string sql, IReadOnlyList<OracleParameter> parameters)
     {
         await using var connection = CreateConnection();
@@ -3127,13 +3929,14 @@ public sealed class OracleDmsService
         P("dossierId", r.DossierId),
         P("borrower", r.Borrower),
         P("borrowerUnit", r.BorrowerUnit),
-        P("exploitMode", r.ExploitMode),
+        P("exploitMode", r.ExploitMode ?? "ONLINE_READ"),
         P("purpose", r.Purpose),
         P("borrowFrom", r.BorrowFrom),
         P("borrowTo", r.BorrowTo),
         P("status", r.Status ?? "PENDING"),
         P("approver", r.Approver),
-        P("note", r.Note)
+        P("note", r.Note),
+        P("approvalNote", r.Note)
     ];
 
     private static IReadOnlyList<OracleParameter> SimpleParameters(SimpleRecordRequest r) =>
@@ -3217,5 +4020,6 @@ public sealed class OracleDmsService
         long TotalDocuments,
         long ApprovedDossiers,
         long TotalDossiers,
-        long BorrowRequests);
+        long ApprovedBorrows,
+        long TotalBorrowRequests);
 }

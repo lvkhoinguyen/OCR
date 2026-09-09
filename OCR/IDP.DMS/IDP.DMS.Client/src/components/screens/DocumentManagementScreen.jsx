@@ -4,6 +4,7 @@ import { uiApi } from "../../services/uiApi";
 import { useCrud } from "../../hooks/useCrud";
 import { emptyDocument } from "../../utils/constants";
 import { PanelTitle, DataTable } from "../shared/SharedComponents";
+import ArchiveLabelModal from "../ArchiveLabelModal";
 
 export default function DocumentManagementScreen() {
   const crud = useCrud("documents", emptyDocument);
@@ -15,6 +16,7 @@ export default function DocumentManagementScreen() {
   const [versionHistoryDoc, setVersionHistoryDoc] = useState(null);
   const [versionRows, setVersionRows] = useState([]);
   const [versionError, setVersionError] = useState("");
+  const [labelModalItem, setLabelModalItem] = useState(null);
 
   const rows = useMemo(() => {
     if (!keyword) return crud.rows;
@@ -275,7 +277,22 @@ export default function DocumentManagementScreen() {
         onDelete={crud.remove} 
         onUpload={handleUploadClick}
         onHistory={(id) => openVersionHistory(rows.find(r => r.id === id))}
+        onLabel={(row) => setLabelModalItem({
+          id: row.id,
+          code: row.code,
+          name: row.title,
+          entityType: "DOCUMENT",
+          location: `Hồ sơ #${row.dossierId || "--"}`,
+          createdAt: row.createdAt
+        })}
       />
+
+      {labelModalItem && (
+        <ArchiveLabelModal
+          item={labelModalItem}
+          onClose={() => setLabelModalItem(null)}
+        />
+      )}
     </section>
   );
 }

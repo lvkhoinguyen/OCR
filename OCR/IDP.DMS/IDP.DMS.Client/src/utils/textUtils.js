@@ -121,27 +121,9 @@ export function normalizeMenuGroups(groups) {
 }
 
 /**
- * Merges API-provided menu groups into the design-defined menu structure.
- * API data takes priority when available; the design structure ensures
- * the sidebar is never empty even when the backend is offline.
+ * Returns the standardized menu structure designed for office users.
+ * Keeps the clean layout without injecting legacy technical code items.
  */
-export function mergeMenuWithDesign(groups, designMenuGroups) {
-  const aliases = {
-    "Quản trị đơn vị": "Quản trị nơi sử dụng",
-    "Nhập liệu & Số hóa hồ sơ": "Nhập liệu",
-    "Phê duyệt & Xuất bản hồ sơ": "Kiểm duyệt",
-    "Tra cứu & Đăng ký mượn hồ sơ": "Khai thác",
-    "Danh mục kho lưu trữ": "Danh mục",
-    "Báo cáo & Thống kê": "Báo cáo",
-    "Duyệt đăng ký mượn hồ sơ": "Duyệt phiếu",
-    "Công cụ AI & OCR": "Nhập liệu",
-  };
-  const merged = designMenuGroups.map((group) => ({ ...group, items: [...group.items] }));
-  groups.forEach((group) => {
-    const targetTitle = aliases[group.title] || group.title;
-    const target = merged.find((item) => item.title === targetTitle);
-    if (!target) return;
-    target.items = [...new Set([...target.items, ...group.items])];
-  });
-  return merged;
+export function mergeMenuWithDesign(_groups, designMenuGroups) {
+  return designMenuGroups;
 }

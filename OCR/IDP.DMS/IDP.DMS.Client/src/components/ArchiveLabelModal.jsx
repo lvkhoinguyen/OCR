@@ -11,8 +11,16 @@ function displayDate(value) {
 
 function onlineLookupUrl(item) {
   const url = new URL(window.location.href);
-  url.searchParams.set("screen", item.entityType === "DOSSIER" ? "Tìm kiếm hồ sơ theo điều kiện" : "Quản lý Kho - Kệ - Tầng - Hộp");
-  url.searchParams.set(item.entityType === "DOSSIER" ? "dossier" : "box", String(item.id));
+  if (item.entityType === "DOSSIER") {
+    url.searchParams.set("screen", "Tìm kiếm hồ sơ theo điều kiện");
+    url.searchParams.set("dossier", String(item.id));
+  } else if (item.entityType === "DOCUMENT") {
+    url.searchParams.set("screen", "Quản lý tài liệu");
+    url.searchParams.set("document", String(item.id));
+  } else {
+    url.searchParams.set("screen", "Quản lý Kho - Kệ - Tầng - Hộp");
+    url.searchParams.set("box", String(item.id));
+  }
   url.searchParams.set("q", String(item.code || ""));
   return url.toString();
 }
@@ -25,13 +33,18 @@ export default function ArchiveLabelModal({ item, onClose }) {
   const [copies, setCopies] = useState(1);
 
   const identifier = String(item.code || item.id);
-  const entityLabel = item.entityType === "DOSSIER" ? "HỒ SƠ LƯU TRỮ" : "HỘP LƯU TRỮ";
+  const entityLabel = item.entityType === "DOSSIER"
+    ? "HỒ SƠ LƯU TRỮ"
+    : item.entityType === "DOCUMENT"
+    ? "TÀI LIỆU LƯU TRỮ"
+    : "HỘP LƯU TRỮ";
+
   const qrJson = useMemo(() => JSON.stringify({
-    loai: item.entityType === "DOSSIER" ? "HO_SO" : "HOP_LUU_TRU",
+    loai: item.entityType === "DOSSIER" ? "HO_SO" : item.entityType === "DOCUMENT" ? "TAI_LIEU" : "HOP_LUU_TRU",
     id: item.id,
-    [item.entityType === "DOSSIER" ? "maHoSo" : "maHop"]: item.code,
-    [item.entityType === "DOSSIER" ? "tenHoSo" : "tenHop"]: item.name,
-    khoKe: item.location || "Chưa xác định",
+    ma: item.code,
+    ten: item.name,
+    viTri: item.location || "Chưa xác định",
     ngayTao: item.createdAt || null
   }), [item]);
   const qrValue = qrMode === "JSON" ? qrJson : (item.lookupUrl || onlineLookupUrl(item));

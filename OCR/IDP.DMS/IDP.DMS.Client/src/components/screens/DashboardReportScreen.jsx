@@ -503,15 +503,15 @@ export default function DashboardReportScreen({ onNavigate }) {
   // Chuyển sang GĐ2-2
   const handleNavigateToWorkflow = (dossier) => {
     if (onNavigate) {
-      onNavigate("Kiểm duyệt", "GĐ2-2 Quản lý quy trình");
+      onNavigate("Kiểm duyệt văn bản đã tách", "Hồ sơ chờ phê duyệt");
       setToast({
         type: "info",
-        text: `Đang chuyển sang màn hình GĐ2-2 Quản lý quy trình để duyệt hồ sơ: ${dossier.code}`
+        text: `Đang chuyển sang màn hình Hồ sơ chờ phê duyệt để duyệt hồ sơ: ${dossier.code}`
       });
     } else {
       setToast({
         type: "info",
-        text: `Vui lòng chọn menu: [Kiểm duyệt] ➔ [GĐ2-2 Quản lý quy trình] để duyệt hồ sơ ${dossier.code}`
+        text: `Vui lòng chọn menu: [Kiểm duyệt văn bản đã tách] ➔ [Hồ sơ chờ phê duyệt] để duyệt hồ sơ ${dossier.code}`
       });
     }
   };

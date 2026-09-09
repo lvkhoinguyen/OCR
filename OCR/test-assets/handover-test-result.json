@@ -1,0 +1,113 @@
+{
+  "testSuite": "IDP.DMS E2E Handover Smoke Test",
+  "executedAt": "2026-09-07T15:43:11.217Z",
+  "totalDurationMs": 5500,
+  "summary": {
+    "totalSteps": 10,
+    "passedSteps": 10,
+    "failedSteps": 0,
+    "passRate": "100%",
+    "status": "PASSED"
+  },
+  "context": {
+    "storageId": 45,
+    "storageCode": "KHO-E2E-1788795785976",
+    "dossierId": 13,
+    "dossierCode": "HS-E2E-1788795785976",
+    "documentId": 9,
+    "documentCode": "VB-E2E-1788795785976",
+    "borrowRequestId": 12
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "Kiểm tra API & Kết nối Oracle DB",
+      "endpoint": "GET /api/dms/resources",
+      "status": "PASS",
+      "durationMs": 348,
+      "details": "Oracle DB sẵn sàng (27 danh mục tài nguyên metadata)",
+      "timestamp": "2026-09-07T15:43:06.325Z"
+    },
+    {
+      "step": 2,
+      "name": "Khởi tạo Schema Database & Seed tài khoản",
+      "endpoint": "POST /api/dms/initialize",
+      "status": "PASS",
+      "durationMs": 1919,
+      "details": "Bảng Oracle & 5 vai trò demo chuẩn đã sẵn sàng",
+      "timestamp": "2026-09-07T15:43:08.245Z"
+    },
+    {
+      "step": 3,
+      "name": "Đăng nhập JWT đa vai trò (admin, nhaplieu...)",
+      "endpoint": "POST /api/auth/login",
+      "status": "PASS",
+      "durationMs": 2112,
+      "details": "Cấp thành công 4 JWT Tokens: admin (SYSTEM_ADMIN), nhaplieu (ARCHIVIST), kiemduyet (REVIEWER), docgia (READER)",
+      "timestamp": "2026-09-07T15:43:10.358Z"
+    },
+    {
+      "step": 4,
+      "name": "Tạo 1 Kho hồ sơ lưu trữ mới",
+      "endpoint": "POST /api/dms/storage-locations",
+      "status": "PASS",
+      "durationMs": 19,
+      "details": "Tạo thành công Kho #45 (KHO-E2E-1788795785976) - Sức chứa: 10.000 hồ sơ",
+      "timestamp": "2026-09-07T15:43:10.378Z"
+    },
+    {
+      "step": 5,
+      "name": "Tạo Hồ sơ lưu trữ mới trạng thái DRAFT",
+      "endpoint": "POST /api/dms/dossiers",
+      "status": "PASS",
+      "durationMs": 42,
+      "details": "Tạo thành công Hồ sơ #13 (HS-E2E-1788795785976) - Trạng thái: DRAFT",
+      "timestamp": "2026-09-07T15:43:10.420Z"
+    },
+    {
+      "step": 6,
+      "name": "Tạo văn bản & Bóc tách đối soát OCR Metadata",
+      "endpoint": "POST /api/ocr/confirm",
+      "status": "PASS",
+      "durationMs": 79,
+      "details": "Tạo Văn bản #9 & Đối soát OCR thành công -> Trạng thái OCR: CONFIRMED",
+      "timestamp": "2026-09-07T15:43:10.499Z"
+    },
+    {
+      "step": 7,
+      "name": "Trình gửi kiểm duyệt hồ sơ (DRAFT -> PENDING)",
+      "endpoint": "POST /api/dms/gd2/workflow/transition",
+      "status": "PASS",
+      "durationMs": 20,
+      "details": "Chuyển trạng thái: DRAFT ➜ PENDING (Hàng chờ duyệt Lãnh đạo)",
+      "timestamp": "2026-09-07T15:43:10.520Z"
+    },
+    {
+      "step": 8,
+      "name": "Phê duyệt hồ sơ (PENDING -> APPROVED) & Ký số PDF",
+      "endpoint": "POST /api/dms/documents/{id}/sign-pdf",
+      "status": "PASS",
+      "durationMs": 596,
+      "details": "Hồ sơ chuyển APPROVED & Ký số PDF thành công: 9_signed_20260907154310971.pdf (Chứng thư: DEVELOPMENT)",
+      "timestamp": "2026-09-07T15:43:11.117Z"
+    },
+    {
+      "step": 9,
+      "name": "Đăng ký mượn hồ sơ & Phê duyệt phiếu mượn",
+      "endpoint": "POST /api/dms/borrow-requests",
+      "status": "PASS",
+      "durationMs": 80,
+      "details": "Phiếu mượn #12 được tạo bởi docgia và phê duyệt bởi kiemduyet -> Trạng thái: APPROVED",
+      "timestamp": "2026-09-07T15:43:11.197Z"
+    },
+    {
+      "step": 10,
+      "name": "Kiểm tra Dashboard Lãnh đạo phản ánh số liệu",
+      "endpoint": "GET /api/dms/gd2/reports/executive-dashboard",
+      "status": "PASS",
+      "durationMs": 19,
+      "details": "Dashboard Oracle thật: Tổng hồ sơ mới = 13, Lượt mượn trả = 12, Cán bộ thi đua thực = 20",
+      "timestamp": "2026-09-07T15:43:11.217Z"
+    }
+  ]
+}

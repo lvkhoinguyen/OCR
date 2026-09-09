@@ -12,11 +12,20 @@ import {
   Trash2,
   Settings,
   Plus,
-  Download
+  Download,
+  Crop,
+  Square,
+  Maximize2,
+  ChevronLeft,
+  ChevronRight,
+  QrCode,
+  Send,
+  FileText
 } from "lucide-react";
 import { uiApi } from "../../services/uiApi";
 import { useCrud } from "../../hooks/useCrud";
 import { StatusBadge, OcrBadge, GD2FeatureLayout } from "../shared/SharedComponents";
+import ArchiveLabelModal from "../ArchiveLabelModal";
 
 export function documentTypeLabel(type) {
   return {
@@ -65,11 +74,11 @@ const emptyStorage = { code: "", name: "", locationType: "KHO", parentId: "", st
 const emptySimple = { code: "", name: "", parentId: "", status: "ACTIVE", description: "", extra1: "", extra2: "", date1: "", date2: "" };
 
 const gd26ZoneFieldOptions = [
-  { key: "documentNumber", label: "Số hiệu" },
-  { key: "issueDate", label: "Ngày ban hành" },
-  { key: "issuingAuthority", label: "Cơ quan ban hành" },
-  { key: "subject", label: "Trích yếu" },
-  { key: "signer", label: "Người ký" },
+  { key: "documentNumber", label: "Số ký hiệu", color: "#2563eb" },
+  { key: "issueDate", label: "Ngày ban hành", color: "#059669" },
+  { key: "issuingAuthority", label: "Cơ quan ban hành", color: "#7c3aed" },
+  { key: "subject", label: "Trích yếu", color: "#d97706" },
+  { key: "signer", label: "Người ký", color: "#db2777" },
 ];
 
 export function parseMetadataFromDoc(desc) {
@@ -99,7 +108,7 @@ export function parseMetadataFromDoc(desc) {
   return { documentNumber: "", issueDate: "", issuingAuthority: "", subject: "", signer: "", fullText: desc };
 }
 
-export default function GD26OcrScreen() {
+export default function GD26OcrScreen({ onOpenWorkflow } = {}) {
   const [activeTab, setActiveTab] = useState("screen");
   const storageCrud = useCrud("storage", emptyStorage);
   const dossierTypeCrud = useCrud("dossier-types", emptySimple);
@@ -108,12 +117,21 @@ export default function GD26OcrScreen() {
   const [summary, setSummary] = useState({ total: 0, done: 0, pending: 0, error: 0, completionRate: 0 });
   const [selectedId, setSelectedId] = useState(null);
   const [selectedStorageId, setSelectedStorageId] = useState("");
+  const [selectedDossierId, setSelectedDossierId] = useState("");
+  const [currentDossierId, setCurrentDossierId] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [ocrEngine, setOcrEngine] = useState("gemini");
   const [loading, setLoading] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [notice, setNotice] = useState(null);
+
+  // Quick Dossier Modal states
+  const [showQuickDossierModal, setShowQuickDossierModal] = useState(false);
+  const [quickDossierCode, setQuickDossierCode] = useState("");
+  const [quickDossierTitle, setQuickDossierTitle] = useState("");
+  const [quickDossierStorageId, setQuickDossierStorageId] = useState("");
+  const [creatingQuickDossier, setCreatingQuickDossier] = useState(false);
 
   // Metadata form fields
   const [documentNumber, setDocumentNumber] = useState("");
@@ -127,13 +145,28 @@ export default function GD26OcrScreen() {
   const [previewBlobUrl, setPreviewBlobUrl] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
 
+  // Zonal OCR States
+  const [ocrMode, setOcrMode] = useState("ZONAL"); // "ZONAL" | "FULL_PAGE"
+  const [ocrZones, setOcrZones] = useState([]);
+  const [drawingZone, setDrawingZone] = useState(null);
+  const [zoneProcessing, setZoneProcessing] = useState(false);
+  const [zonePreviewPage, setZonePreviewPage] = useState(1);
+  const [zonePageCount, setZonePageCount] = useState(1);
+  const [zonePreviewUrl, setZonePreviewUrl] = useState("");
+  const [zonePreviewLoading, setZonePreviewLoading] = useState(false);
+  const zoneCanvasRef = useRef(null);
+  const [labelModalItem, setLabelModalItem] = useState(null);
+
   const fileInputRef = useRef(null);
 
   const filteredOcrDocuments = useMemo(() => {
     return documents.filter(doc => {
       if (selectedStorageId) {
         const dossier = dossiers.find(item => Number(item.id) === Number(doc.dossierId));
-        if (String(dossier?.storageId || "") !== selectedStorageId) return false;
+        if (dossier && String(dossier?.storageId || "") !== selectedStorageId) return false;
+      }
+      if (selectedDossierId) {
+        if (String(doc.dossierId || "") !== selectedDossierId) return false;
       }
       if (statusFilter !== "ALL") {
         const st = String(doc.ocrStatus || "PENDING").toUpperCase();
@@ -143,7 +176,7 @@ export default function GD26OcrScreen() {
       }
       return true;
     });
-  }, [documents, dossiers, selectedStorageId, statusFilter]);
+  }, [documents, dossiers, selectedStorageId, selectedDossierId, statusFilter]);
 
   const selectedDocument = useMemo(() => {
     return documents.find(item => Number(item.id) === Number(selectedId)) || filteredOcrDocuments[0] || null;
@@ -159,6 +192,67 @@ export default function GD26OcrScreen() {
       label: `${row.code || `Kho #${row.id}`} - ${row.name || row.title || "Chưa có tên"}`,
     }));
   }, [storageCrud.rows]);
+
+  // Danh sách hồ sơ phù hợp theo Kho đang lọc
+  const dossierOptions = useMemo(() => {
+    const list = selectedStorageId
+      ? dossiers.filter(d => String(d.storageId) === selectedStorageId)
+      : dossiers;
+    return list.map(d => ({
+      value: String(d.id),
+      label: `${d.code || `HS #${d.id}`} - ${d.title || "Chưa có tên"}`
+    }));
+  }, [dossiers, selectedStorageId]);
+
+  // Tự động chọn Kho đầu tiên có trong hệ thống nếu chưa chọn
+  useEffect(() => {
+    if (!selectedStorageId && storageOptions.length > 0) {
+      setSelectedStorageId(storageOptions[0].value);
+    }
+  }, [storageOptions, selectedStorageId]);
+
+  // Mở modal tạo nhanh hồ sơ
+  function openQuickDossierModal() {
+    setQuickDossierCode(`HS-${Date.now().toString().slice(-4)}`);
+    setQuickDossierTitle("");
+    setQuickDossierStorageId(selectedStorageId || storageOptions[0]?.value || "");
+    setShowQuickDossierModal(true);
+  }
+
+  // Xử lý lưu hồ sơ tạo nhanh
+  async function handleCreateQuickDossier(e) {
+    if (e) e.preventDefault();
+    if (!quickDossierTitle.trim()) {
+      alert("Vui lòng nhập tiêu đề hồ sơ!");
+      return;
+    }
+    setCreatingQuickDossier(true);
+    try {
+      const code = quickDossierCode.trim() || `HS-QUICK-${Date.now()}`;
+      const targetStorageId = Number(quickDossierStorageId || selectedStorageId || storageOptions[0]?.value || 1);
+      const newDossier = await uiApi.crud("dossiers").create({
+        code,
+        title: quickDossierTitle.trim(),
+        storageId: targetStorageId,
+        dossierType: "Hành chính",
+        status: "DRAFT",
+        description: "Tạo nhanh từ màn hình Bóc tách văn bản AI"
+      });
+      setDossiers(prev => [newDossier, ...prev]);
+      setSelectedStorageId(String(targetStorageId));
+      setSelectedDossierId(String(newDossier.id));
+      setCurrentDossierId(String(newDossier.id));
+      setShowQuickDossierModal(false);
+      setNotice({
+        type: "success",
+        text: `Đã tạo nhanh hồ sơ "${newDossier.code} - ${newDossier.title}" thành công!`
+      });
+    } catch (err) {
+      alert(`Không tạo được hồ sơ: ${err.message}`);
+    } finally {
+      setCreatingQuickDossier(false);
+    }
+  }
 
   const loadOcrData = useCallback(async () => {
     setLoading(true);
@@ -206,7 +300,16 @@ export default function GD26OcrScreen() {
     setSubject(parsed.subject || selectedDocument.title || "");
     setSigner(parsed.signer || "");
     setFullText(parsed.fullText || "");
-  }, [selectedDocument?.id, selectedDocument?.description]);
+
+    if (selectedDocument.dossierId) {
+      setCurrentDossierId(String(selectedDocument.dossierId));
+    } else if (dossiers.length > 0) {
+      const defaultDossier = dossiers.find(d => !selectedStorageId || String(d.storageId) === String(selectedStorageId)) || dossiers[0];
+      if (defaultDossier) {
+        setCurrentDossierId(String(defaultDossier.id));
+      }
+    }
+  }, [selectedDocument?.id, selectedDocument?.description, selectedDocument?.dossierId, dossiers, selectedStorageId]);
 
   // Load preview blob for selectedDocument
   useEffect(() => {
@@ -244,6 +347,138 @@ export default function GD26OcrScreen() {
     };
   }, [selectedDocument?.id, selectedDocument?.fileName]);
 
+  // Load Zonal Page Preview for Selected Document
+  useEffect(() => {
+    let active = true;
+    let objectUrl = "";
+    setZonePreviewUrl("");
+    if (!selectedDocument?.id || !selectedDocument.fileName) return;
+
+    setZonePreviewLoading(true);
+    uiApi.gd2.ocrZonePreview(selectedDocument.id, zonePreviewPage)
+      .then(result => {
+        if (!active) return;
+        objectUrl = URL.createObjectURL(result.blob);
+        setZonePreviewUrl(objectUrl);
+        setZonePageCount(result.pageCount || 1);
+      })
+      .catch(() => {
+        if (!active) return;
+        setZonePreviewUrl(previewBlobUrl || "");
+        setZonePageCount(1);
+      })
+      .finally(() => {
+        if (active) setZonePreviewLoading(false);
+      });
+
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [selectedDocument?.id, selectedDocument?.fileName, zonePreviewPage, previewBlobUrl]);
+
+  // Reset zones on document switch
+  useEffect(() => {
+    setOcrZones([]);
+    setDrawingZone(null);
+    setZonePreviewPage(1);
+  }, [selectedDocument?.id]);
+
+  function pointInZoneCanvas(event) {
+    if (!zoneCanvasRef.current) return { x: 0, y: 0 };
+    const rect = zoneCanvasRef.current.getBoundingClientRect();
+    return {
+      x: Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100)),
+      y: Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100)),
+    };
+  }
+
+  function beginZoneDrawing(event) {
+    const activeUrl = zonePreviewUrl || previewBlobUrl;
+    if (!activeUrl || event.button !== 0) return;
+    if (event.target !== zoneCanvasRef.current && !event.target.classList.contains("zone-bg-img")) return;
+    event.currentTarget?.setPointerCapture?.(event.pointerId);
+    const point = pointInZoneCanvas(event);
+    setDrawingZone({ startX: point.x, startY: point.y, currentX: point.x, currentY: point.y });
+  }
+
+  function updateZoneDrawing(event) {
+    if (!drawingZone) return;
+    const point = pointInZoneCanvas(event);
+    setDrawingZone(current => current ? { ...current, currentX: point.x, currentY: point.y } : null);
+  }
+
+  function finishZoneDrawing() {
+    if (!drawingZone) return;
+    const x = Math.min(drawingZone.startX, drawingZone.currentX);
+    const y = Math.min(drawingZone.startY, drawingZone.currentY);
+    const width = Math.abs(drawingZone.currentX - drawingZone.startX);
+    const height = Math.abs(drawingZone.currentY - drawingZone.startY);
+    setDrawingZone(null);
+    if (width < 1.5 || height < 1.5) return;
+    if (ocrZones.length >= 10) {
+      setNotice({ type: "error", text: "Mỗi lần chỉ được tạo tối đa 10 vùng OCR." });
+      return;
+    }
+    const field = gd26ZoneFieldOptions.find(option => !ocrZones.some(z => z.fieldKey === option.key)) || gd26ZoneFieldOptions[0];
+    setOcrZones(current => [...current, {
+      id: `zone-${Date.now()}-${current.length}`,
+      fieldKey: field.key,
+      label: field.label,
+      page: zonePreviewPage,
+      x: Number(x.toFixed(2)),
+      y: Number(y.toFixed(2)),
+      width: Number(width.toFixed(2)),
+      height: Number(height.toFixed(2)),
+    }]);
+  }
+
+  function changeZoneField(zoneId, fieldKey) {
+    const option = gd26ZoneFieldOptions.find(item => item.key === fieldKey);
+    setOcrZones(current => current.map(zone => zone.id === zoneId
+      ? { ...zone, fieldKey, label: option?.label || zone.label }
+      : zone));
+  }
+
+  function removeZone(zoneId) {
+    setOcrZones(current => current.filter(z => z.id !== zoneId));
+  }
+
+  async function extractSelectedZones() {
+    if (!selectedDocument || ocrZones.length === 0) {
+      setNotice({ type: "error", text: "Vui lòng khoanh ít nhất một vùng trước khi bóc tách." });
+      return;
+    }
+    try {
+      setZoneProcessing(true);
+      setNotice({ type: "info", text: `Đang bóc tách ${ocrZones.length} vùng đã chọn bằng ${ocrEngine}...` });
+      const result = await uiApi.gd2.extractOcrZones(selectedDocument.id, {
+        engine: ocrEngine,
+        zones: ocrZones,
+      });
+      const meta = result.metadata || {};
+      if (meta.documentNumber) setDocumentNumber(meta.documentNumber);
+      if (meta.issueDate) setIssueDate(meta.issueDate);
+      if (meta.issuingAuthority) setIssuingAuthority(meta.issuingAuthority);
+      if (meta.subject) setSubject(meta.subject);
+      if (meta.signer) setSigner(meta.signer);
+
+      const zoneTexts = (result.zones || []).map(z => `${z.label}: ${z.text}`).join("\n");
+      if (zoneTexts) {
+        setFullText(prev => prev ? `${prev}\n\n[Zonal OCR]:\n${zoneTexts}` : zoneTexts);
+      }
+
+      setNotice({
+        type: "success",
+        text: `Đã bóc tách thành công ${result.zones?.length || 0} vùng và tự động điền vào các trường đối soát!`
+      });
+    } catch (error) {
+      setNotice({ type: "error", text: `Bóc tách theo vùng thất bại: ${error.message}` });
+    } finally {
+      setZoneProcessing(false);
+    }
+  }
+
   // Handle Run AI OCR
   async function handleRunOcr() {
     if (!selectedDocument) {
@@ -253,16 +488,23 @@ export default function GD26OcrScreen() {
     setOcrLoading(true);
     setNotice({ type: "info", text: `Đang chạy AI OCR (${ocrEngine}) bóc tách tài liệu ${selectedDocument.code}...` });
     try {
-      const res = await uiApi.ocr.process(selectedDocument.id, ocrEngine);
+      // Đặt timeout 25s tránh giao diện bị treo vô hạn
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Quá thời gian phản hồi từ máy chủ OCR (25s). Vui lòng thử chọn động cơ Tesseract/VietOCR hoặc đối soát trực tiếp.")), 25000)
+      );
+      const res = await Promise.race([
+        uiApi.ocr.process(selectedDocument.id, ocrEngine),
+        timeoutPromise
+      ]);
       setDocumentNumber(res.documentNumber || "");
       setIssueDate(res.issueDate || "");
       setIssuingAuthority(res.issuingAuthority || "");
       setSubject(res.subject || "");
       setSigner(res.signer || "");
-      setFullText(res.text || "");
+      setFullText(res.text || res.fullText || "");
       setNotice({
         type: "success",
-        text: `Bóc tách AI OCR thành công bằng ${res.engine}! Vui lòng đối soát các trường bên phải và bấm [Xác nhận & Lưu].`
+        text: `Bóc tách AI OCR hoàn thành bằng ${res.engine || ocrEngine}! Vui lòng đối soát các trường bên phải và bấm [Xác nhận & Lưu].`
       });
       await loadOcrData();
     } catch (err) {
@@ -272,13 +514,13 @@ export default function GD26OcrScreen() {
     }
   }
 
-  // Handle Confirm & Save
+  // Handle Confirm & Save (Lưu kết quả)
   async function handleConfirmSave() {
     if (!selectedDocument) return;
     setSaveLoading(true);
-    setNotice({ type: "info", text: "Đang lưu dữ liệu đối soát vào hệ thống..." });
+    setNotice({ type: "info", text: "Đang lưu kết quả đối soát vào hệ thống..." });
     try {
-      const res = await uiApi.ocr.confirm({
+      await uiApi.ocr.confirm({
         documentId: selectedDocument.id,
         documentNumber,
         issueDate,
@@ -289,19 +531,83 @@ export default function GD26OcrScreen() {
         actor: "current-user",
         note: "Đối soát và xác nhận thông tin OCR"
       });
+
+      if (currentDossierId && Number(currentDossierId) !== Number(selectedDocument.dossierId)) {
+        await uiApi.crud("documents").update(selectedDocument.id, {
+          ...selectedDocument,
+          dossierId: Number(currentDossierId)
+        });
+      }
+
       setNotice({
         type: "success",
-        text: `Đã xác nhận và lưu thông tin đối soát thành công! Trạng thái OCR đã chuyển sang CONFIRMED.`
+        text: `Đã lưu kết quả đối soát thành công! Trạng thái OCR đã chuyển sang CONFIRMED.`
       });
       await loadOcrData();
+      return true;
     } catch (err) {
-      setNotice({ type: "error", text: `Lỗi khi lưu đối soát: ${err.message}` });
+      setNotice({ type: "error", text: `Lỗi khi lưu kết quả: ${err.message}` });
+      return false;
     } finally {
       setSaveLoading(false);
     }
   }
 
-  // Handle Send for Review (Workflow transition)
+  // Handle Save & Submit for Review (Gộp thao tác: Lưu & Gửi kiểm duyệt)
+  async function handleSaveAndSubmitReview() {
+    if (!selectedDocument) return;
+    setSaveLoading(true);
+    setNotice({ type: "info", text: "Đang lưu kết quả và chuyển tài liệu sang hàng chờ kiểm duyệt..." });
+    try {
+      await uiApi.ocr.confirm({
+        documentId: selectedDocument.id,
+        documentNumber,
+        issueDate,
+        issuingAuthority,
+        subject,
+        signer,
+        fullText,
+        actor: "current-user",
+        note: "Đối soát và xác nhận thông tin OCR"
+      });
+
+      if (currentDossierId && Number(currentDossierId) !== Number(selectedDocument.dossierId)) {
+        await uiApi.crud("documents").update(selectedDocument.id, {
+          ...selectedDocument,
+          dossierId: Number(currentDossierId)
+        });
+      }
+
+      await uiApi.dms.transition({
+        entityType: "DOCUMENT",
+        entityId: selectedDocument.id,
+        action: "SUBMIT",
+        actor: "current-user",
+        unitCode: "DEFAULT",
+        comment: `Gửi kiểm duyệt cho tài liệu ${selectedDocument.code} sau khi bóc tách OCR và đối soát.`,
+        recipient: selectedDocument.code,
+      });
+
+      const currentDocId = selectedDocument.id;
+      const currentStorId = selectedStorageId;
+      setNotice({
+        type: "success",
+        text: `Đã lưu kết quả OCR và gửi tài liệu "${selectedDocument.code}" sang hàng chờ kiểm duyệt thành công!`,
+        hint: "Trạng thái đã chuyển sang [Chờ kiểm duyệt - PENDING]. Bạn có thể xem tại: Kiểm duyệt văn bản đã tách ➔ Hồ sơ chờ phê duyệt.",
+        actionBtn: onOpenWorkflow ? {
+          label: "👉 Mở hàng chờ duyệt ngay",
+          onClick: () => onOpenWorkflow({ focusDocumentId: currentDocId, storageId: currentStorId })
+        } : null
+      });
+      await loadOcrData();
+    } catch (err) {
+      setNotice({ type: "error", text: `Lỗi khi lưu & gửi kiểm duyệt: ${err.message}` });
+    } finally {
+      setSaveLoading(false);
+    }
+  }
+
+  // Handle Send for Review (Workflow transition riêng biệt)
   async function handleSubmitReview() {
     if (!selectedDocument) return;
     try {
@@ -309,13 +615,23 @@ export default function GD26OcrScreen() {
       await uiApi.dms.transition({
         entityType: "DOCUMENT",
         entityId: selectedDocument.id,
-        action: "FORWARD",
+        action: "SUBMIT",
         actor: "current-user",
         unitCode: "DEFAULT",
-        comment: `Gửi kiểm duyệt từ GĐ2-6 cho tài liệu ${selectedDocument.code} sau khi hoàn tất đối soát OCR.`,
+        comment: `Gửi kiểm duyệt cho tài liệu ${selectedDocument.code} sau khi hoàn tất đối soát OCR.`,
         recipient: selectedDocument.code,
       });
-      setNotice({ type: "success", text: `Đã gửi tài liệu ${selectedDocument.code} sang hàng chờ kiểm duyệt (GĐ2-2).` });
+      const currentDocId = selectedDocument.id;
+      const currentStorId = selectedStorageId;
+      setNotice({
+        type: "success",
+        text: `Đã gửi tài liệu "${selectedDocument.code}" sang hàng chờ kiểm duyệt thành công!`,
+        hint: "Trạng thái đã chuyển sang [Chờ kiểm duyệt - PENDING]. Bạn có thể xem tại: Kiểm duyệt văn bản đã tách ➔ Hồ sơ chờ phê duyệt.",
+        actionBtn: onOpenWorkflow ? {
+          label: "👉 Mở hàng chờ duyệt ngay",
+          onClick: () => onOpenWorkflow({ focusDocumentId: currentDocId, storageId: currentStorId })
+        } : null
+      });
       await loadOcrData();
     } catch (err) {
       setNotice({ type: "error", text: `Lỗi gửi kiểm duyệt: ${err.message}` });
@@ -324,23 +640,57 @@ export default function GD26OcrScreen() {
     }
   }
 
-  // Quick file upload and OCR
+  // Quick file upload and OCR (Tải tài liệu & Bóc tách AI)
   async function handleFileUpload(event) {
     const file = event.target.files?.[0];
     event.target.value = "";
-    if (!file || !selectedDocument) return;
+    if (!file) return;
 
     setOcrLoading(true);
     setNotice({ type: "info", text: `Đang tải lên tệp '${file.name}' và bóc tách AI OCR...` });
     try {
-      const res = await uiApi.ocr.process(selectedDocument.id, ocrEngine, file);
+      let docId = selectedDocument?.id;
+      if (!docId) {
+        // Tự động gán hoặc tạo hồ sơ mặc định trong kho hiện tại
+        let targetDossierId = currentDossierId;
+        if (!targetDossierId && dossiers.length > 0) {
+          targetDossierId = dossiers[0].id;
+        }
+        if (!targetDossierId) {
+          const defaultStorageId = selectedStorageId || storageOptions[0]?.value || 1;
+          const autoDossier = await uiApi.crud("dossiers").create({
+            code: `HS-AUTO-${Date.now()}`,
+            title: "Hồ sơ tiếp nhận số hóa",
+            storageId: Number(defaultStorageId),
+            dossierType: "Hành chính",
+            status: "DRAFT",
+            description: "Hồ sơ tự động tạo từ màn hình Số hóa & OCR"
+          });
+          targetDossierId = autoDossier.id;
+          setDossiers(prev => [autoDossier, ...prev]);
+        }
+
+        const newDoc = await uiApi.crud("documents").create({
+          code: `VB-AUTO-${Date.now()}`,
+          title: file.name.replace(/\.[^/.]+$/, ""),
+          dossierId: Number(targetDossierId),
+          documentType: "DOCUMENT",
+          status: "DRAFT",
+          ocrStatus: "PENDING",
+          fileName: file.name
+        });
+        docId = newDoc.id;
+        setSelectedId(docId);
+      }
+
+      const res = await uiApi.ocr.process(docId, ocrEngine, file);
       setDocumentNumber(res.documentNumber || "");
       setIssueDate(res.issueDate || "");
       setIssuingAuthority(res.issuingAuthority || "");
       setSubject(res.subject || "");
       setSigner(res.signer || "");
       setFullText(res.text || "");
-      setNotice({ type: "success", text: `Đã đính kèm tệp và bóc tách AI OCR thành công! Vui lòng đối soát và lưu.` });
+      setNotice({ type: "success", text: `Đã đính kèm tệp và bóc tách AI OCR thành công! Vui lòng đối soát và bấm [Lưu kết quả] hoặc [Lưu & Gửi kiểm duyệt].` });
       await loadOcrData();
     } catch (err) {
       setNotice({ type: "error", text: `Lỗi tải file & OCR: ${err.message}` });
@@ -354,15 +704,45 @@ export default function GD26OcrScreen() {
     <div style={{ display: "flex", flexDirection: "column", gap: "12px", height: "100%" }}>
       <div>
         <label style={{ fontSize: "12px", fontWeight: 700, color: "#1e3a8a", display: "block", marginBottom: "4px" }}>
-          Lọc theo Kho lưu trữ
+          Kho lưu trữ
         </label>
         <select
           value={selectedStorageId}
-          onChange={e => setSelectedStorageId(e.target.value)}
+          onChange={e => {
+            setSelectedStorageId(e.target.value);
+            setSelectedDossierId("");
+          }}
           style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
         >
-          <option value="">-- Tất cả Kho --</option>
+          {storageOptions.length === 0 && <option value="">-- Đang tải kho lưu trữ... --</option>}
           {storageOptions.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+          <label style={{ fontSize: "12px", fontWeight: 700, color: "#1e3a8a" }}>
+            Hồ sơ lưu trữ
+          </label>
+          <button
+            type="button"
+            className="btn"
+            onClick={openQuickDossierModal}
+            style={{ fontSize: "11px", padding: "2px 8px", background: "#eff6ff", color: "#1d4ed8", borderColor: "#bfdbfe" }}
+            title="Tạo nhanh mã hồ sơ mới tại chỗ mà không cần rời màn hình"
+          >
+            + Tạo nhanh hồ sơ
+          </button>
+        </div>
+        <select
+          value={selectedDossierId}
+          onChange={e => setSelectedDossierId(e.target.value)}
+          style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+        >
+          <option value="">-- Tất cả hồ sơ --</option>
+          {dossierOptions.map(opt => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
@@ -419,9 +799,7 @@ export default function GD26OcrScreen() {
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
                 <strong style={{ fontSize: "13px", color: isSelected ? "#1d4ed8" : "#1e293b" }}>{doc.code}</strong>
-                <span style={{ fontSize: "10px", padding: "2px 6px", borderRadius: "999px", background: badgeBg, color: badgeColor, fontWeight: 700 }}>
-                  {ocrSt}
-                </span>
+                <OcrBadge status={ocrSt} />
               </div>
               <div style={{ fontSize: "12px", color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {doc.title || "Chưa có tiêu đề"}
@@ -455,8 +833,43 @@ export default function GD26OcrScreen() {
   const rightPanel = (
     <div style={{ display: "flex", flexDirection: "column", gap: "14px", height: "100%" }}>
       {notice && (
-        <div className={`gd2-report-notice ${notice.type}`} style={{ margin: 0, padding: "10px 14px", borderRadius: "8px" }}>
-          {notice.text}
+        <div className={`gd2-report-notice ${notice.type}`} style={{
+          margin: 0,
+          padding: "12px 16px",
+          borderRadius: "8px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "12px",
+          flexWrap: "wrap"
+        }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600 }}>{notice.text}</div>
+            {notice.hint && (
+              <div style={{ marginTop: "4px", fontSize: "12px", opacity: 0.9 }}>
+                ℹ️ {notice.hint}
+              </div>
+            )}
+          </div>
+          {notice.actionBtn && (
+            <button
+              type="button"
+              className="btn"
+              onClick={notice.actionBtn.onClick}
+              style={{
+                fontSize: "12px",
+                background: "#1d4ed8",
+                color: "#fff",
+                borderColor: "#1d4ed8",
+                padding: "6px 14px",
+                fontWeight: 700,
+                cursor: "pointer",
+                whiteSpace: "nowrap"
+              }}
+            >
+              {notice.actionBtn.label}
+            </button>
+          )}
         </div>
       )}
 
@@ -508,21 +921,60 @@ export default function GD26OcrScreen() {
           <button
             className="btn"
             type="button"
-            disabled={ocrLoading || !selectedDocument}
+            disabled={ocrLoading}
             onClick={() => fileInputRef.current?.click()}
-            title="Đổi tệp hoặc tải lên tệp mới cho tài liệu này"
+            title="Đổi tệp hoặc tải lên tệp mới để bóc tách AI"
           >
-            <Upload size={14} /> Tải file mới
+            <Upload size={14} /> Tải tài liệu & Bóc tách AI
+          </button>
+
+          <button
+            className="btn"
+            type="button"
+            disabled={!selectedDocument}
+            onClick={() => setLabelModalItem({
+              id: selectedDocument.id,
+              code: selectedDocument.code,
+              name: selectedDocument.title,
+              entityType: "DOCUMENT",
+              location: selectedDossier?.title || "Chưa gắn hồ sơ",
+              createdAt: selectedDocument.createdAt
+            })}
+            title="In tem Barcode / QR Code tài liệu"
+            style={{ color: "#4f46e5" }}
+          >
+            <QrCode size={14} /> In nhãn
           </button>
 
           <button
             className="btn primary"
             type="button"
-            disabled={ocrLoading || !selectedDocument || !selectedDocument.fileName}
-            onClick={handleRunOcr}
-            style={{ background: "#2563eb", color: "#fff", fontWeight: 700, padding: "8px 16px" }}
+            disabled={!selectedDocument || !selectedDocument.fileName}
+            onClick={() => {
+              if (ocrLoading) {
+                setOcrLoading(false);
+                setNotice({ type: "warning", text: "Đã hủy trạng thái chờ bóc tách. Bạn có thể chọn động cơ Tesseract/VietOCR hoặc chỉnh sửa trực tiếp các trường bên phải." });
+              } else {
+                handleRunOcr();
+              }
+            }}
+            style={{
+              background: ocrLoading ? "#ef4444" : "#2563eb",
+              color: "#fff",
+              fontWeight: 700,
+              padding: "8px 16px"
+            }}
+            title={ocrLoading ? "Bấm để Hủy tiến trình đang chạy" : "Bấm để bóc tách văn bản bằng AI"}
           >
-            <Zap size={16} /> {ocrLoading ? "Đang chạy AI OCR..." : "Chạy OCR AI"}
+            {ocrLoading ? (
+              <>
+                <X size={16} /> Hủy chờ OCR
+              </>
+            ) : (
+              <>
+                <Zap size={16} /> Chạy OCR AI
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -535,7 +987,7 @@ export default function GD26OcrScreen() {
         flex: 1,
         minHeight: "560px"
       }}>
-        {/* Left Column: Original File Preview */}
+        {/* Left Column: Original File Preview with Zonal OCR */}
         <div style={{
           display: "flex",
           flexDirection: "column",
@@ -544,48 +996,257 @@ export default function GD26OcrScreen() {
           background: "#fff",
           overflow: "hidden"
         }}>
+          {/* Header & Mode Switcher */}
           <div style={{
-            padding: "10px 14px",
-            background: "#f1f5f9",
+            padding: "8px 12px",
+            background: "#f8fafc",
             borderBottom: "1px solid #e2e8f0",
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center"
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "8px"
           }}>
-            <strong style={{ fontSize: "13px", color: "#1e293b", display: "flex", alignItems: "center", gap: "6px" }}>
-              <FileText size={15} color="#2563eb" /> Khung xem trước tệp gốc (PDF / Ảnh)
-            </strong>
-            {previewBlobUrl && (
-              <a
-                href={previewBlobUrl}
-                target="_blank"
-                rel="noreferrer"
-                style={{ fontSize: "12px", color: "#2563eb", textDecoration: "none", fontWeight: 600 }}
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <button
+                type="button"
+                className={`btn ${ocrMode === "ZONAL" ? "primary" : ""}`}
+                onClick={() => setOcrMode("ZONAL")}
+                style={{ fontSize: "12px", padding: "4px 8px", display: "inline-flex", alignItems: "center", gap: "4px" }}
               >
-                Mở tab mới ↗
-              </a>
-            )}
+                <Crop size={13} /> Khoanh vùng (Zonal OCR)
+              </button>
+              <button
+                type="button"
+                className={`btn ${ocrMode === "FULL_PAGE" ? "primary" : ""}`}
+                onClick={() => setOcrMode("FULL_PAGE")}
+                style={{ fontSize: "12px", padding: "4px 8px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+              >
+                <FileText size={13} /> Xem toàn trang
+              </button>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              {ocrMode === "ZONAL" && zonePageCount > 1 && (
+                <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "11px", color: "#475569" }}>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    disabled={zonePreviewPage <= 1}
+                    onClick={() => setZonePreviewPage(p => Math.max(1, p - 1))}
+                    style={{ padding: "2px" }}
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <span>Trang {zonePreviewPage} / {zonePageCount}</span>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    disabled={zonePreviewPage >= zonePageCount}
+                    onClick={() => setZonePreviewPage(p => Math.min(zonePageCount, p + 1))}
+                    style={{ padding: "2px" }}
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+              )}
+
+              {previewBlobUrl && (
+                <a
+                  href={previewBlobUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ fontSize: "12px", color: "#2563eb", textDecoration: "none", fontWeight: 600 }}
+                >
+                  Mở tab mới ↗
+                </a>
+              )}
+            </div>
           </div>
 
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "#64748b10", padding: "8px", overflow: "hidden" }}>
-            {previewLoading ? (
+          {/* Zonal Action Toolbar */}
+          {ocrMode === "ZONAL" && (
+            <div style={{
+              padding: "6px 12px",
+              background: "#eff6ff",
+              borderBottom: "1px solid #dbeafe",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "8px"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <button
+                  type="button"
+                  className="btn primary"
+                  disabled={zoneProcessing || ocrZones.length === 0}
+                  onClick={extractSelectedZones}
+                  style={{ fontSize: "12px", padding: "4px 10px", background: "#0284c7" }}
+                >
+                  <Zap size={13} /> {zoneProcessing ? "Đang nhận dạng..." : `Nhận dạng ${ocrZones.length} vùng`}
+                </button>
+                {ocrZones.length > 0 && (
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => setOcrZones([])}
+                    style={{ fontSize: "12px", padding: "4px 8px", color: "#dc2626" }}
+                    title="Xóa tất cả các vùng đã vẽ"
+                  >
+                    <Trash2 size={13} /> Xóa vùng
+                  </button>
+                )}
+              </div>
+              <span style={{ fontSize: "11px", color: "#64748b" }}>
+                💡 Rê chuột vẽ khung trên ảnh để trích xuất trường tương ứng
+              </span>
+            </div>
+          )}
+
+          {/* Preview & Drawing Canvas Area */}
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "#64748b10", padding: "8px", overflow: "auto" }}>
+            {previewLoading || zonePreviewLoading ? (
               <div style={{ textAlign: "center", color: "#64748b" }}>
                 <RefreshCw size={24} className="spin" style={{ marginBottom: "8px" }} />
-                <div>Đang tải tài liệu xem trước...</div>
+                <div>Đang kết xuất ảnh tài liệu...</div>
               </div>
-            ) : previewBlobUrl ? (
-              selectedDocument?.fileName?.toLowerCase().endsWith(".pdf") ? (
-                <iframe
-                  src={previewBlobUrl}
-                  title="PDF Preview"
-                  style={{ width: "100%", height: "100%", minHeight: "520px", border: "none", borderRadius: "6px", background: "#fff" }}
-                />
+            ) : (zonePreviewUrl || previewBlobUrl) ? (
+              ocrMode === "ZONAL" ? (
+                <div
+                  ref={zoneCanvasRef}
+                  onPointerDown={beginZoneDrawing}
+                  onPointerMove={updateZoneDrawing}
+                  onPointerUp={finishZoneDrawing}
+                  onPointerCancel={() => setDrawingZone(null)}
+                  style={{
+                    position: "relative",
+                    display: "inline-block",
+                    userSelect: "none",
+                    touchAction: "none",
+                    cursor: "crosshair",
+                    maxWidth: "100%",
+                    boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
+                    borderRadius: "6px",
+                    overflow: "hidden"
+                  }}
+                >
+                  <img
+                    className="zone-bg-img"
+                    src={zonePreviewUrl || previewBlobUrl}
+                    alt="Zonal Preview"
+                    style={{ display: "block", maxWidth: "100%", maxHeight: "560px", objectFit: "contain", pointerEvents: "none" }}
+                  />
+
+                  {/* Render Existing Zones */}
+                  {ocrZones.filter(z => z.page === zonePreviewPage).map((zone, idx) => {
+                    const opt = gd26ZoneFieldOptions.find(o => o.key === zone.fieldKey) || gd26ZoneFieldOptions[0];
+                    return (
+                      <div
+                        key={zone.id}
+                        style={{
+                          position: "absolute",
+                          left: `${zone.x}%`,
+                          top: `${zone.y}%`,
+                          width: `${zone.width}%`,
+                          height: `${zone.height}%`,
+                          border: `2px solid ${opt.color}`,
+                          background: `${opt.color}22`,
+                          boxSizing: "border-box",
+                          pointerEvents: "auto",
+                          zIndex: 10
+                        }}
+                      >
+                        {/* Zone Tag & Selector */}
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: "-22px",
+                            left: "0",
+                            display: "flex",
+                            alignItems: "center",
+                            background: opt.color,
+                            color: "#fff",
+                            fontSize: "10px",
+                            fontWeight: 700,
+                            borderRadius: "4px",
+                            padding: "1px 4px",
+                            whiteSpace: "nowrap",
+                            boxShadow: "0 1px 4px rgba(0,0,0,0.3)"
+                          }}
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <select
+                            value={zone.fieldKey}
+                            onChange={e => changeZoneField(zone.id, e.target.value)}
+                            style={{
+                              background: "transparent",
+                              color: "#fff",
+                              border: "none",
+                              fontSize: "10px",
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              padding: "0"
+                            }}
+                          >
+                            {gd26ZoneFieldOptions.map(o => (
+                              <option key={o.key} value={o.key} style={{ color: "#000" }}>{o.label}</option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => removeZone(zone.id)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "#fff",
+                              cursor: "pointer",
+                              marginLeft: "4px",
+                              padding: "0",
+                              fontSize: "11px",
+                              lineHeight: 1
+                            }}
+                            title="Xóa vùng này"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Active Drawing Rectangle */}
+                  {drawingZone && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: `${Math.min(drawingZone.startX, drawingZone.currentX)}%`,
+                        top: `${Math.min(drawingZone.startY, drawingZone.currentY)}%`,
+                        width: `${Math.abs(drawingZone.currentX - drawingZone.startX)}%`,
+                        height: `${Math.abs(drawingZone.currentY - drawingZone.startY)}%`,
+                        border: "2px dashed #0284c7",
+                        background: "rgba(2, 132, 199, 0.2)",
+                        boxSizing: "border-box",
+                        pointerEvents: "none",
+                        zIndex: 20
+                      }}
+                    />
+                  )}
+                </div>
               ) : (
-                <img
-                  src={previewBlobUrl}
-                  alt="Original Document"
-                  style={{ maxWidth: "100%", maxHeight: "540px", objectFit: "contain", borderRadius: "6px", boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}
-                />
+                selectedDocument?.fileName?.toLowerCase().endsWith(".pdf") ? (
+                  <iframe
+                    src={previewBlobUrl}
+                    title="PDF Preview"
+                    style={{ width: "100%", height: "100%", minHeight: "520px", border: "none", borderRadius: "6px", background: "#fff" }}
+                  />
+                ) : (
+                  <img
+                    src={previewBlobUrl}
+                    alt="Original Document"
+                    style={{ maxWidth: "100%", maxHeight: "540px", objectFit: "contain", borderRadius: "6px", boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}
+                  />
+                )
               )
             ) : (
               <div style={{ textAlign: "center", color: "#94a3b8", padding: "40px 20px" }}>
@@ -595,12 +1256,12 @@ export default function GD26OcrScreen() {
                   Tài liệu này chưa có tệp vật lý đính kèm hoặc tệp đang được xử lý.
                 </p>
                 <button
-                  className="btn"
+                  className="btn primary"
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  style={{ fontSize: "12px" }}
+                  style={{ fontSize: "12px", background: "#2563eb", color: "#fff" }}
                 >
-                  <Upload size={13} /> Tải tệp lên ngay
+                  <Upload size={13} /> Tải tài liệu & Bóc tách AI
                 </button>
               </div>
             )}
@@ -633,6 +1294,33 @@ export default function GD26OcrScreen() {
           </div>
 
           <div style={{ flex: 1, padding: "14px 16px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>
+                  Hồ sơ lưu trữ <span style={{ color: "#dc2626" }}>*</span>
+                </label>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={openQuickDossierModal}
+                  style={{ fontSize: "11px", padding: "2px 8px", background: "#eff6ff", color: "#1d4ed8", borderColor: "#bfdbfe" }}
+                  title="Tạo nhanh mã hồ sơ mới tại chỗ mà không cần rời màn hình"
+                >
+                  + Tạo nhanh hồ sơ
+                </button>
+              </div>
+              <select
+                value={currentDossierId}
+                onChange={e => setCurrentDossierId(e.target.value)}
+                style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "13px" }}
+              >
+                {dossierOptions.length === 0 && <option value="">-- Chưa có hồ sơ nào --</option>}
+                {dossierOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
               <div>
                 <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155", display: "block", marginBottom: "4px" }}>
@@ -734,7 +1422,7 @@ export default function GD26OcrScreen() {
               <Zap size={14} /> Chạy lại OCR
             </button>
 
-            <div style={{ display: "flex", gap: "10px" }}>
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
               <button
                 className="btn ok"
                 type="button"
@@ -742,7 +1430,18 @@ export default function GD26OcrScreen() {
                 onClick={handleConfirmSave}
                 style={{ background: "#16a34a", color: "#fff", borderColor: "#16a34a", fontWeight: 700, padding: "8px 18px" }}
               >
-                <CheckCircle2 size={15} /> {saveLoading ? "Đang lưu..." : "Xác nhận & Lưu"}
+                <CheckCircle2 size={15} /> {saveLoading ? "Đang lưu..." : "Lưu kết quả"}
+              </button>
+
+              <button
+                className="btn primary"
+                type="button"
+                disabled={saveLoading || !selectedDocument}
+                onClick={handleSaveAndSubmitReview}
+                style={{ background: "#2563eb", color: "#fff", borderColor: "#2563eb", fontWeight: 700, padding: "8px 18px" }}
+                title="Lưu kết quả OCR và gửi hồ sơ sang hàng chờ kiểm duyệt trong một thao tác"
+              >
+                <Send size={15} /> {saveLoading ? "Đang xử lý..." : "✓ Lưu & Gửi kiểm duyệt"}
               </button>
 
               <button
@@ -752,7 +1451,7 @@ export default function GD26OcrScreen() {
                 onClick={handleSubmitReview}
                 style={{ background: "#7c3aed", color: "#fff", borderColor: "#7c3aed", fontWeight: 700 }}
               >
-                <Send size={14} /> Gửi kiểm duyệt (GĐ2-2)
+                <Send size={14} /> Gửi kiểm duyệt
               </button>
             </div>
           </div>
@@ -762,26 +1461,145 @@ export default function GD26OcrScreen() {
   );
 
   return (
-    <GD2FeatureLayout
-      featureId="GĐ2-6"
-      featureName="Tích hợp AI OCR & Đối soát dữ liệu"
-      description="Bóc tách văn bản hành chính bằng AI OCR (Gemini / Tesseract), đối soát Side-by-Side hai cột trực quan và xác nhận thông tin lưu trữ."
-      actor="Cán bộ số hóa / Chuyên viên nhập liệu"
-      actionBarLabel="Bóc tách & Đối soát OCR"
-      activeTab={activeTab}
-      onTabChange={setActiveTab}
-      splitRatio="300px 1fr"
-      leftPanelTitle="Danh sách văn bản"
-      rightPanelTitle="Đối soát Side-by-Side"
-      actions={
-        <>
-          <button className="btn" type="button" onClick={loadOcrData}><RefreshCw size={14}/> Tải lại</button>
-          <button className="btn primary" type="button" onClick={handleRunOcr} disabled={ocrLoading || !selectedDocument}><Zap size={14}/> Chạy OCR AI</button>
-          <button className="btn ok" type="button" onClick={handleConfirmSave} disabled={saveLoading || !selectedDocument} style={{ background: "#16a34a", color: "#fff" }}><CheckCircle2 size={14}/> Xác nhận & Lưu</button>
-        </>
-      }
-      leftPanel={leftPanel}
-      rightPanel={rightPanel}
-    />
+    <>
+      <GD2FeatureLayout
+        featureId="GĐ2-6"
+        featureName="Tích hợp AI OCR & Đối soát dữ liệu"
+        description="Bóc tách văn bản hành chính bằng AI OCR (Gemini / Tesseract), đối soát Side-by-Side hai cột trực quan và xác nhận thông tin lưu trữ."
+        actor="Cán bộ số hóa / Chuyên viên nhập liệu"
+        actionBarLabel="Bóc tách & Đối soát OCR"
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        splitRatio="300px 1fr"
+        leftPanelTitle="Danh sách văn bản"
+        rightPanelTitle="Đối soát Side-by-Side"
+        actions={
+          <>
+            <button className="btn" type="button" onClick={loadOcrData}><RefreshCw size={14}/> Tải lại</button>
+            <button className="btn primary" type="button" onClick={() => fileInputRef.current?.click()} disabled={ocrLoading}><Upload size={14}/> Tải tài liệu & Bóc tách AI</button>
+            <button className="btn ok" type="button" onClick={handleConfirmSave} disabled={saveLoading || !selectedDocument} style={{ background: "#16a34a", color: "#fff" }}><CheckCircle2 size={14}/> Lưu kết quả</button>
+            <button className="btn" type="button" onClick={handleSaveAndSubmitReview} disabled={saveLoading || !selectedDocument} style={{ background: "#2563eb", color: "#fff", borderColor: "#2563eb", fontWeight: 700 }}><Send size={14}/> ✓ Lưu & Gửi kiểm duyệt</button>
+          </>
+        }
+        leftPanel={leftPanel}
+        rightPanel={rightPanel}
+      />
+      {labelModalItem && (
+        <ArchiveLabelModal
+          item={labelModalItem}
+          onClose={() => setLabelModalItem(null)}
+        />
+      )}
+      {showQuickDossierModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(15, 23, 42, 0.6)",
+            backdropFilter: "blur(2px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000
+          }}
+          onClick={() => setShowQuickDossierModal(false)}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "12px",
+              padding: "24px",
+              width: "480px",
+              maxWidth: "90vw",
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2)",
+              border: "1px solid #e2e8f0"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", color: "#1e3a8a", fontWeight: 700 }}>
+                📁 Tạo nhanh Hồ sơ lưu trữ
+              </h3>
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={() => setShowQuickDossierModal(false)}
+                style={{ padding: "4px", border: "none", background: "none", cursor: "pointer", color: "#64748b" }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateQuickDossier} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              <div>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155", display: "block", marginBottom: "4px" }}>
+                  Kho lưu trữ <span style={{ color: "#dc2626" }}>*</span>
+                </label>
+                <select
+                  value={quickDossierStorageId}
+                  onChange={e => setQuickDossierStorageId(e.target.value)}
+                  style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "13px" }}
+                >
+                  {storageOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155", display: "block", marginBottom: "4px" }}>
+                  Mã hồ sơ <span style={{ color: "#dc2626" }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={quickDossierCode}
+                  onChange={e => setQuickDossierCode(e.target.value)}
+                  placeholder="Ví dụ: HS-2026-01"
+                  required
+                  style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "13px" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155", display: "block", marginBottom: "4px" }}>
+                  Tiêu đề hồ sơ <span style={{ color: "#dc2626" }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={quickDossierTitle}
+                  onChange={e => setQuickDossierTitle(e.target.value)}
+                  placeholder="Ví dụ: Hồ sơ quyết định đầu tư năm 2026"
+                  required
+                  autoFocus
+                  style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "13px" }}
+                />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "10px" }}>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setShowQuickDossierModal(false)}
+                  disabled={creatingQuickDossier}
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  className="btn primary"
+                  disabled={creatingQuickDossier}
+                  style={{ background: "#2563eb", color: "#fff", fontWeight: 700 }}
+                >
+                  {creatingQuickDossier ? "Đang tạo..." : "✓ Tạo hồ sơ ngay"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

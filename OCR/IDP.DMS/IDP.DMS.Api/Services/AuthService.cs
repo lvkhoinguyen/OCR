@@ -18,8 +18,11 @@ public sealed class AuthService
 
     private static readonly (string Username, string Password, string RoleCode, string RoleName, string FullName, string Permissions)[] DefaultSeedUsers =
     [
-        ("admin", "Admin@123", "ADMIN", "Quản trị hệ thống", "Quản trị viên hệ thống", "*"),
-        ("nhaplieu", "User@123", "DATA_ENTRY", "Cán bộ nhập liệu", "Cán bộ nhập liệu", "DMS.READ,DMS.WRITE,DMS.OCR,DMS.SUBMIT"),
+        ("admin", "Admin@123", "SYSTEM_ADMIN", "Quản trị hệ thống toàn quyền", "Quản trị viên hệ thống toàn quyền", "*"),
+        ("qtdv", "Qtdv@123", "ADMIN", "Quản trị đơn vị cấp tỉnh/sở", "Quản trị đơn vị cấp tỉnh/sở", "DMS.READ,DMS.WRITE,DMS.OCR,DMS.SUBMIT,DMS.REVIEW,DMS.APPROVE,DMS.PUBLISH,DMS.ADMIN"),
+        ("nhaplieu", "Nhaplieu@123", "ARCHIVIST", "Chuyên viên nhập liệu số hóa", "Chuyên viên nhập liệu số hóa", "DMS.READ,DMS.WRITE,DMS.OCR,DMS.SUBMIT"),
+        ("kiemduyet", "Kiemduyet@123", "REVIEWER", "Cán bộ kiểm duyệt & Ký số", "Cán bộ kiểm duyệt & Ký số", "DMS.READ,DMS.REVIEW,DMS.APPROVE,DMS.PUBLISH"),
+        ("docgia", "Docgia@123", "READER", "Độc giả tra cứu & mượn hồ sơ", "Độc giả tra cứu & mượn hồ sơ", "DMS.READ"),
         ("lanhdao", "Approver@123", "APPROVER", "Cán bộ kiểm duyệt", "Cán bộ kiểm duyệt", "DMS.READ,DMS.REVIEW,DMS.APPROVE,DMS.PUBLISH"),
         ("khach", "Guest@123", "PUBLIC", "Người dùng khai thác", "Người dùng khai thác", "DMS.READ")
     ];
@@ -106,13 +109,17 @@ public sealed class AuthService
                 FOREIGN KEY (ROLE_ID) REFERENCES DMS_ROLES(ID) ENABLE NOVALIDATE
                 """);
 
-            await SeedRoleAsync(connection, "ADMIN", "Quản trị hệ thống", "*");
-            await SeedRoleAsync(connection, "SYSTEM_ADMIN", "Quản trị hệ thống", "*");
+            await SeedRoleAsync(connection, "SYSTEM_ADMIN", "Quản trị hệ thống toàn quyền", "*");
+            await SeedRoleAsync(connection, "ADMIN", "Quản trị đơn vị cấp tỉnh/sở",
+                "DMS.READ,DMS.WRITE,DMS.OCR,DMS.SUBMIT,DMS.REVIEW,DMS.APPROVE,DMS.PUBLISH,DMS.ADMIN");
+            await SeedRoleAsync(connection, "ARCHIVIST", "Chuyên viên nhập liệu số hóa",
+                "DMS.READ,DMS.WRITE,DMS.OCR,DMS.SUBMIT");
+            await SeedRoleAsync(connection, "REVIEWER", "Cán bộ kiểm duyệt & Ký số",
+                "DMS.READ,DMS.REVIEW,DMS.APPROVE,DMS.PUBLISH");
+            await SeedRoleAsync(connection, "READER", "Độc giả tra cứu & mượn hồ sơ", "DMS.READ");
             await SeedRoleAsync(connection, "MANAGER", "Lãnh đạo đơn vị",
                 "DMS.READ,DMS.WRITE,DMS.OCR,DMS.SUBMIT,DMS.REVIEW,DMS.APPROVE,DMS.PUBLISH");
             await SeedRoleAsync(connection, "APPROVER", "Cán bộ kiểm duyệt",
-                "DMS.READ,DMS.REVIEW,DMS.APPROVE,DMS.PUBLISH");
-            await SeedRoleAsync(connection, "REVIEWER", "Cán bộ kiểm duyệt",
                 "DMS.READ,DMS.REVIEW,DMS.APPROVE,DMS.PUBLISH");
             await SeedRoleAsync(connection, "DATA_ENTRY", "Cán bộ nhập liệu",
                 "DMS.READ,DMS.WRITE,DMS.OCR,DMS.SUBMIT");
@@ -195,7 +202,13 @@ public sealed class AuthService
                 {
                     if (normalizedUsername == "admin" && (request.Password == "Admin@123" || request.Password == "Admin@123456"))
                         isValid = true;
-                    else if (normalizedUsername == "nhaplieu" && request.Password == "User@123")
+                    else if (normalizedUsername == "qtdv" && request.Password == "Qtdv@123")
+                        isValid = true;
+                    else if (normalizedUsername == "nhaplieu" && (request.Password == "Nhaplieu@123" || request.Password == "User@123"))
+                        isValid = true;
+                    else if (normalizedUsername == "kiemduyet" && request.Password == "Kiemduyet@123")
+                        isValid = true;
+                    else if (normalizedUsername == "docgia" && request.Password == "Docgia@123")
                         isValid = true;
                     else if ((normalizedUsername == "lanhdao" || normalizedUsername == "approver") && request.Password == "Approver@123")
                         isValid = true;
@@ -442,7 +455,7 @@ public sealed class AuthService
 
     private static AuthUserDto ToDto(AuthUserRecord user) =>
         new(user.Id, user.Username, user.FullName, user.Email,
-            user.RoleCode == "SYSTEM_ADMIN" ? "ADMIN" : user.RoleCode,
+            user.RoleCode,
             user.RoleName, ParsePermissions(user.Permissions));
 
     private static IReadOnlyList<string> ParsePermissions(string permissions) =>
@@ -533,20 +546,25 @@ public sealed class AuthService
 
     private static async Task SeedDefaultUsersAsync(OracleConnection connection)
     {
-        var adminRole = await FindRoleAsync(connection, "ADMIN")
-            ?? await FindRoleAsync(connection, "SYSTEM_ADMIN");
+        var adminRole = await FindRoleAsync(connection, "SYSTEM_ADMIN")
+            ?? await FindRoleAsync(connection, "ADMIN");
 
         var usersToSeed = new[]
         {
-            (Username: "admin", Password: "Admin@123", RoleCode: "ADMIN", FullName: "Quản trị viên hệ thống", Email: "admin@idp.vn"),
-            (Username: "nhaplieu", Password: "User@123", RoleCode: "DATA_ENTRY", FullName: "Cán bộ nhập liệu", Email: "nhaplieu@idp.vn"),
+            (Username: "admin", Password: "Admin@123", RoleCode: "SYSTEM_ADMIN", FullName: "Quản trị viên hệ thống toàn quyền", Email: "admin@idp.vn"),
+            (Username: "qtdv", Password: "Qtdv@123", RoleCode: "ADMIN", FullName: "Quản trị đơn vị cấp tỉnh/sở", Email: "qtdv@idp.vn"),
+            (Username: "nhaplieu", Password: "Nhaplieu@123", RoleCode: "ARCHIVIST", FullName: "Chuyên viên nhập liệu số hóa", Email: "nhaplieu@idp.vn"),
+            (Username: "kiemduyet", Password: "Kiemduyet@123", RoleCode: "REVIEWER", FullName: "Cán bộ kiểm duyệt & Ký số", Email: "kiemduyet@idp.vn"),
+            (Username: "docgia", Password: "Docgia@123", RoleCode: "READER", FullName: "Độc giả tra cứu & mượn hồ sơ", Email: "docgia@idp.vn"),
             (Username: "lanhdao", Password: "Approver@123", RoleCode: "APPROVER", FullName: "Cán bộ kiểm duyệt", Email: "lanhdao@idp.vn"),
             (Username: "khach", Password: "Guest@123", RoleCode: "PUBLIC", FullName: "Người dùng khai thác", Email: "khach@idp.vn")
         };
 
         foreach (var u in usersToSeed)
         {
-            var targetRole = await FindRoleAsync(connection, u.RoleCode) ?? adminRole;
+            var targetRole = await FindRoleAsync(connection, u.RoleCode)
+                ?? await FindRoleAsync(connection, "SYSTEM_ADMIN")
+                ?? adminRole;
             if (!targetRole.HasValue) continue;
 
             var existing = Convert.ToInt64(await ExecuteScalarAsync(connection,
@@ -572,12 +590,18 @@ public sealed class AuthService
                     P("roleId", targetRole.Value.Id));
                 await command.ExecuteNonQueryAsync();
             }
-            else if (u.Username == "admin")
+            else
             {
-                await using var updateCmd = BuildCommand(connection,
-                    "UPDATE DMS_USERS SET PASSWORD_HASH=:passwordHash, ROLE_ID=:roleId WHERE LOWER(USERNAME)='admin'",
+                await using var updateCmd = BuildCommand(connection, """
+                    UPDATE DMS_USERS
+                    SET PASSWORD_HASH=:passwordHash, ROLE_ID=:roleId, FULL_NAME=:fullName,
+                        STATUS='ACTIVE', UPDATED_AT=SYSDATE
+                    WHERE LOWER(USERNAME)=:username
+                    """,
                     P("passwordHash", passwordHash),
-                    P("roleId", targetRole.Value.Id));
+                    P("roleId", targetRole.Value.Id),
+                    P("fullName", u.FullName),
+                    P("username", u.Username.ToLowerInvariant()));
                 await updateCmd.ExecuteNonQueryAsync();
             }
         }

@@ -1,0 +1,9 @@
+{
+  "name": "idp-dms-ocr",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "IDP.DMS - Hệ thống quản lý và số hóa hồ sơ lưu trữ",
+  "scripts": {
+    "test:handover": "node test-assets/run-handover-test.mjs"
+  }
+}

@@ -9,6 +9,7 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
 // Không phụ thuộc Windows Event Log: tài khoản chạy dịch vụ/demo có thể không có quyền ghi Event Log.
 builder.Logging.ClearProviders();
